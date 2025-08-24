@@ -1,14 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 支持静态导出（用于GitHub Pages）
-  output: 'export',
-  trailingSlash: true,
-  images: {
-    unoptimized: true,
-  },
-  // 禁用服务端功能（因为静态导出不支持）
+  // Vercel部署配置
   experimental: {
     // 移除过时的appDir配置
+  },
+  // 图片优化配置
+  images: {
+    domains: ['localhost'],
+    unoptimized: false,
+  },
+  // 环境变量配置
+  env: {
+    CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
 }
 

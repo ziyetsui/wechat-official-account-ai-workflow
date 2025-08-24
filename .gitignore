@@ -17,12 +17,6 @@ dist/
 .env.test.local
 .env.production.local
 
-# Vercel
-.vercel
-
-# TypeScript
-*.tsbuildinfo
-
 # IDE
 .vscode/
 .idea/
@@ -92,7 +86,7 @@ jspm_packages/
 .vuepress/dist
 
 # Serverless directories
-.serverless/
+.serverless
 
 # FuseBox cache
 .fusebox/
@@ -103,13 +97,11 @@ jspm_packages/
 # TernJS port file
 .tern-port
 
-# Stores VSCode versions used for testing VSCode extensions
-.vscode-test
-
-# Temporary folders
-tmp/
-temp/
-
-# Deployment packages
-*.zip
+# Deployment files
 deploy-package/
+*.zip
+wechat-ai-workflow-deploy.zip
+
+# Temporary files
+*.tmp
+*.temp

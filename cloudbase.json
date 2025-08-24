@@ -1,0 +1,20 @@
+{
+  "version": "2.0",
+  "envId": "your-env-id",
+  "framework": {
+    "name": "nextjs",
+    "plugins": {
+      "client": {
+        "use": "@cloudbase/framework-plugin-next",
+        "inputs": {
+          "entry": "./",
+          "path": "/",
+          "name": "wechat-ai-workflow",
+          "installCommand": "npm install",
+          "buildCommand": "npm run build",
+          "startCommand": "npm start"
+        }
+      }
+    }
+  }
+} 

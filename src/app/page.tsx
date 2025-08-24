@@ -52,6 +52,18 @@ export default function Home() {
         })
       ])
 
+      // 检查响应状态
+      if (!contentRes.ok || !titlesRes.ok || !imagesRes.ok) {
+        const errorText = await contentRes.text()
+        console.error('API响应错误:', {
+          contentStatus: contentRes.status,
+          titlesStatus: titlesRes.status,
+          imagesStatus: imagesRes.status,
+          errorText
+        })
+        throw new Error(`API请求失败: ${contentRes.status} ${contentRes.statusText}`)
+      }
+
       const [contentData, titlesData, imagesData] = await Promise.all([
         contentRes.json(),
         titlesRes.json(),
@@ -65,6 +77,7 @@ export default function Home() {
           imageSuggestions: imagesData.data
         })
       } else {
+        console.error('API返回错误:', { contentData, titlesData, imagesData })
         throw new Error('生成失败，请重试')
       }
     } catch (error) {

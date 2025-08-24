@@ -33,8 +33,10 @@ print_step "开始部署到Netlify..."
 
 # 检查是否已安装Netlify CLI
 if ! command -v netlify &> /dev/null; then
-    print_warning "Netlify CLI 未安装，正在安装..."
-    npm install -g netlify-cli
+    print_warning "Netlify CLI 未安装，将使用npx..."
+    USE_NPX=true
+else
+    USE_NPX=false
 fi
 
 # 检查当前目录是否为git仓库
@@ -52,9 +54,16 @@ fi
 
 # 检查是否已登录Netlify
 print_step "检查Netlify登录状态..."
-if ! netlify status &> /dev/null; then
-    print_message "请先登录Netlify..."
-    netlify login
+if [ "$USE_NPX" = true ]; then
+    if ! npx netlify status &> /dev/null; then
+        print_message "请先登录Netlify..."
+        npx netlify login
+    fi
+else
+    if ! netlify status &> /dev/null; then
+        print_message "请先登录Netlify..."
+        netlify login
+    fi
 fi
 
 # 构建项目
@@ -63,7 +72,11 @@ npm run build
 
 # 部署到Netlify
 print_step "部署到Netlify..."
-netlify deploy --prod --dir=.next
+if [ "$USE_NPX" = true ]; then
+    npx netlify deploy --prod --dir=.next
+else
+    netlify deploy --prod --dir=.next
+fi
 
 print_message "✅ Netlify部署完成！"
 echo ""

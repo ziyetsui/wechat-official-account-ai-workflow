@@ -7,7 +7,6 @@ const app = next({ dev })
 const handle = app.getRequestHandler()
 
 exports.handler = async (event, context) => {
-  // 设置CORS头
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -15,7 +14,6 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   }
 
-  // 处理OPTIONS请求
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -25,11 +23,9 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // 解析请求路径
     const url = parse(event.path, true)
     const { query } = url
     
-    // 创建模拟的HTTP请求对象
     const req = {
       url: event.path,
       method: event.httpMethod,
@@ -50,7 +46,6 @@ exports.handler = async (event, context) => {
       }
     }
     
-    // 处理请求
     await handle(req, res)
     
     return {
@@ -62,7 +57,7 @@ exports.handler = async (event, context) => {
       body: res.body
     }
   } catch (error) {
-    console.error('API Error:', error)
+    console.error('Test API Error:', error)
     
     return {
       statusCode: 500,

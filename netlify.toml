@@ -6,15 +6,33 @@
   NODE_VERSION = "18"
   NPM_VERSION = "9"
 
+# API路由重定向
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
+  force = true
 
+# 页面路由重定向
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  force = true
+
+# 静态资源缓存
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# API响应头
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
 
 [functions]
   directory = "netlify/functions"

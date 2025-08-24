@@ -11,7 +11,7 @@ const nextConfig = {
   },
   // 环境变量配置
   env: {
-    CUSTOM_KEY: process.env.CUSTOM_KEY,
+    CUSTOM_KEY: process.env.CUSTOM_KEY || '',
   },
 }
 

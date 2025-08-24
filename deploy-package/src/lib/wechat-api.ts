@@ -56,7 +56,7 @@ class WeChatAPI {
       const accessToken = await this.getAccessToken()
       
       const formData = new FormData()
-      formData.append('media', new Blob([imageBuffer]), 'image.jpg')
+      formData.append('media', new Blob([imageBuffer as any]), 'image.jpg')
       
       const response = await fetch(
         `https://api.weixin.qq.com/cgi-bin/material/add_material?access_token=${accessToken}&type=image`,

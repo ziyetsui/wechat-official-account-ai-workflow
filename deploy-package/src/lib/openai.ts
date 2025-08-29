@@ -1,19 +1,40 @@
-import OpenAI from 'openai'
 import { PROFESSIONAL_PROMPT_TEMPLATE, TITLE_GENERATION_PROMPT, IMAGE_SUGGESTION_PROMPT } from './prompts'
 
-const base_url = process.env.AZURE_OPENAI_BASE_URL || "https://gpt-i18n.byteintl.net/gpt/openapi/online/v2/crawl/openai/deployments/gpt_openapi"
-const api_version = process.env.AZURE_OPENAI_API_VERSION || "2024-03-01-preview"
-const ak = process.env.AZURE_OPENAI_API_KEY || "I2brwSdmty3dYeCtPIderK1lJzrIHYcc_GPT_AK"
-const model_name = process.env.AZURE_OPENAI_MODEL_NAME || "gemini-2.5-pro"
-const max_tokens = parseInt(process.env.AZURE_OPENAI_MAX_TOKENS || "32000")
+// 直接调用Azure OpenAI API的函数
+async function callAzureOpenAI(prompt: string, maxTokens: number = 2000) {
+  const base_url = process.env.AZURE_OPENAI_BASE_URL || "https://gpt-i18n.byteintl.net/gpt/openapi/online/v2/crawl/openai/deployments/gpt_openapi"
+  const api_version = process.env.AZURE_OPENAI_API_VERSION || "2024-03-01-preview"
+  const ak = process.env.AZURE_OPENAI_API_KEY || "I2brwSdmty3dYeCtPIderK1lJzrIHYcc_GPT_AK"
+  const model_name = process.env.AZURE_OPENAI_MODEL_NAME || "gemini-2.5-pro"
 
-// 创建Azure OpenAI客户端
-export const openai = new OpenAI({
-  baseURL: base_url,
-  apiKey: ak,
-  defaultQuery: { 'api-version': api_version },
-  defaultHeaders: { 'api-key': ak },
-})
+  const apiUrl = `${base_url}/chat/completions?api-version=${api_version}`
+  
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'api-key': ak,
+    },
+    body: JSON.stringify({
+      model: model_name,
+      messages: [
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.7,
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error(`API调用失败: ${response.status} ${response.statusText}`)
+  }
+
+  const data = await response.json()
+  return data.choices?.[0]?.message?.content || '生成失败'
+}
 
 // 使用专业提示词模板生成内容
 export async function generateContent(topic: string, settings?: any): Promise<string> {
@@ -31,22 +52,10 @@ export async function generateContent(topic: string, settings?: any): Promise<st
         .replace('刘润风格', settings.writingStyle || '刘润风格')
     }
 
-    const response = await openai.chat.completions.create({
-      model: model_name,
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: max_tokens,
-      temperature: 0.7,
-    })
-
-    let content = response.choices[0]?.message?.content || '生成失败，请重试'
+    const result = await callAzureOpenAI(prompt, 4000)
     
     // 清理内容，只保留文章部分
-    content = cleanGeneratedContent(content)
+    const content = cleanGeneratedContent(result)
     
     return content
   } catch (error) {
@@ -149,23 +158,10 @@ function cleanGeneratedContent(content: string): string {
 export async function generateTitle(topic: string): Promise<string> {
   try {
     const prompt = TITLE_GENERATION_PROMPT.replace('{{topic}}', topic)
-
-    const response = await openai.chat.completions.create({
-      model: model_name,
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: 1000,
-      temperature: 0.8,
-    })
-
-    return response.choices[0]?.message?.content || '标题生成失败'
+    return await callAzureOpenAI(prompt, 1000)
   } catch (error) {
     console.error('标题生成错误:', error)
-    throw new Error('标题生成失败')
+    throw new Error('标题生成失败，请重试')
   }
 }
 
@@ -173,22 +169,34 @@ export async function generateTitle(topic: string): Promise<string> {
 export async function generateImageSuggestions(content: string): Promise<string> {
   try {
     const prompt = IMAGE_SUGGESTION_PROMPT.replace('{{content}}', content)
-
-    const response = await openai.chat.completions.create({
-      model: model_name,
-      messages: [
-        {
-          role: "user",
-          content: prompt
-        }
-      ],
-      max_tokens: 800,
-      temperature: 0.6,
-    })
-
-    return response.choices[0]?.message?.content || '配图建议生成失败'
+    return await callAzureOpenAI(prompt, 800)
   } catch (error) {
     console.error('配图建议生成错误:', error)
-    throw new Error('配图建议生成失败')
+    throw new Error('配图建议生成失败，请重试')
+  }
+}
+
+// 测试API连接
+export async function testAPIConnection(): Promise<string> {
+  try {
+    console.log('测试API连接...')
+    console.log('配置信息:', {
+      baseURL: process.env.AZURE_OPENAI_BASE_URL,
+      apiVersion: process.env.AZURE_OPENAI_API_VERSION,
+      model: process.env.AZURE_OPENAI_MODEL_NAME,
+      maxTokens: process.env.AZURE_OPENAI_MAX_TOKENS
+    })
+
+    const result = await callAzureOpenAI("请回复'API连接测试成功'", 100)
+    console.log('API测试结果:', result)
+    return result
+  } catch (error) {
+    console.error('API连接测试失败:', error)
+    console.error('错误详情:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace'
+    })
+    return `连接失败: ${error instanceof Error ? error.message : '未知错误'}`
   }
 } 

@@ -105,3 +105,4 @@ wechat-ai-workflow-deploy.zip
 # Temporary files
 *.tmp
 *.temp
+.vercel

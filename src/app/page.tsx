@@ -5,6 +5,7 @@ import { Bot, FileText, Image, Send, Sparkles, Type, Wand2, Plus, Settings, Down
 import Link from 'next/link'
 import ExportButton from '@/components/ExportButton'
 import AdvancedSettings from '@/components/AdvancedSettings'
+import ClientOnly from '@/components/ClientOnly'
 
 interface GeneratedContent {
   content: string
@@ -54,20 +55,25 @@ export default function Home() {
 
       // 检查响应状态
       if (!contentRes.ok || !titlesRes.ok || !imagesRes.ok) {
-        const errorText = await contentRes.text()
+        let errorText = ''
+        try {
+          errorText = await contentRes.text()
+        } catch (e) {
+          errorText = '无法读取错误响应'
+        }
         console.error('API响应错误:', {
           contentStatus: contentRes.status,
           titlesStatus: titlesRes.status,
           imagesStatus: imagesRes.status,
           errorText
         })
-        throw new Error(`API请求失败: ${contentRes.status} ${contentRes.statusText}`)
+        throw new Error(`API请求失败: ${contentRes.status}`)
       }
 
       const [contentData, titlesData, imagesData] = await Promise.all([
-        contentRes.json(),
-        titlesRes.json(),
-        imagesRes.json()
+        contentRes.json().catch(e => ({ success: false, error: 'JSON解析失败' })),
+        titlesRes.json().catch(e => ({ success: false, error: 'JSON解析失败' })),
+        imagesRes.json().catch(e => ({ success: false, error: 'JSON解析失败' }))
       ])
 
       if (contentData.success && titlesData.success && imagesData.success) {
@@ -138,31 +144,35 @@ export default function Home() {
                   />
                 </div>
                 
-                <button
-                  onClick={handleGenerateContent}
-                  disabled={isGenerating || !topic.trim()}
-                  className="w-full notion-button notion-button-primary flex items-center justify-center py-3"
-                >
-                  {isGenerating ? (
-                    <>
-                      <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
-                      生成中...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-5 h-5 mr-2" />
-                      生成内容
-                    </>
-                  )}
-                </button>
+                <ClientOnly>
+                  <button
+                    onClick={handleGenerateContent}
+                    disabled={isGenerating || !topic.trim()}
+                    className="w-full notion-button notion-button-primary flex items-center justify-center py-3"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                        生成中...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5 mr-2" />
+                        生成内容
+                      </>
+                    )}
+                  </button>
+                </ClientOnly>
               </div>
             </div>
 
             {/* Advanced Settings Card */}
-            <AdvancedSettings 
-              settings={advancedSettings}
-              onSettingsChange={setAdvancedSettings}
-            />
+            <ClientOnly>
+              <AdvancedSettings 
+                settings={advancedSettings}
+                onSettingsChange={setAdvancedSettings}
+              />
+            </ClientOnly>
 
             {/* Quick Actions Card */}
             <div className="notion-card notion-card-hover p-6">
@@ -206,15 +216,18 @@ export default function Home() {
                 )}
               </div>
               
-              {error && (
-                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                  <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
-                </div>
-              )}
+              <ClientOnly>
+                {error && (
+                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+                  </div>
+                )}
+              </ClientOnly>
               
               <div className="min-h-[500px]">
-                {generatedContent ? (
-                  <div className="space-y-6">
+                <ClientOnly>
+                  {generatedContent ? (
+                    <div className="space-y-6">
                     {/* 标签页导航 */}
                     <div className="flex space-x-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
                       <button
@@ -295,6 +308,7 @@ export default function Home() {
                     </div>
                   </div>
                 )}
+                </ClientOnly>
               </div>
             </div>
           </div>

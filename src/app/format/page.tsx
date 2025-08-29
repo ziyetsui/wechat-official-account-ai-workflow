@@ -10,6 +10,7 @@ export default function FormatPage() {
   const [isFormatting, setIsFormatting] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
   const [error, setError] = useState('')
+  const [showFullContent, setShowFullContent] = useState(false)
   const [publishData, setPublishData] = useState({
     title: '',
     author: '',
@@ -37,7 +38,56 @@ export default function FormatPage() {
       const data = await response.json()
 
       if (data.success) {
-        setFormattedArticle(data.data)
+        let htmlContent = data.data
+        
+        // 自动修复不完整的HTML
+        const hasOpeningDiv = htmlContent.includes('<div')
+        const hasClosingDiv = htmlContent.includes('</div>')
+        const hasOpeningP = htmlContent.includes('<p')
+        const hasClosingP = htmlContent.includes('</p>')
+        
+        // 如果缺少结束div标签，自动添加
+        if (hasOpeningDiv && !hasClosingDiv) {
+          htmlContent += '\n</div>'
+          console.log('✅ 已自动修复：添加结束div标签')
+        }
+        
+        // 检查p标签是否平衡
+        const pCount = (htmlContent.match(/<p/g) || []).length
+        const closingPCount = (htmlContent.match(/<\/p>/g) || []).length
+        
+        if (pCount > closingPCount) {
+          const missingP = pCount - closingPCount
+          for (let i = 0; i < missingP; i++) {
+            htmlContent += '\n</p>'
+          }
+          console.log(`✅ 已自动修复：添加${missingP}个结束p标签`)
+        }
+        
+        setFormattedArticle(htmlContent)
+        
+        // 调试输出：在控制台显示完整的HTML内容
+        console.log('完整的HTML内容:', htmlContent)
+        console.log('HTML内容长度:', htmlContent.length)
+        
+        // 详细的HTML完整性检查
+        const divCount = (htmlContent.match(/<div/g) || []).length
+        const closingDivCount = (htmlContent.match(/<\/div>/g) || []).length
+        const finalPCount = (htmlContent.match(/<p/g) || []).length
+        const finalClosingPCount = (htmlContent.match(/<\/p>/g) || []).length
+        
+        console.log('HTML完整性详细检查:')
+        console.log('- div标签数量:', divCount, '结束div标签数量:', closingDivCount)
+        console.log('- p标签数量:', finalPCount, '结束p标签数量:', finalClosingPCount)
+        console.log('- div标签平衡:', divCount === closingDivCount)
+        console.log('- p标签平衡:', finalPCount === finalClosingPCount)
+        
+        // 检查是否有未闭合的标签
+        if (divCount !== closingDivCount || finalPCount !== finalClosingPCount) {
+          console.warn('⚠️ 仍有未闭合的HTML标签')
+        } else {
+          console.log('✅ HTML标签已完全平衡')
+        }
       } else {
         throw new Error(data.error || '排版失败')
       }
@@ -214,8 +264,36 @@ export default function FormatPage() {
                   <>
                     <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                       <div className="prose prose-sm max-w-none dark:prose-invert">
-                        <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 font-mono text-sm leading-relaxed overflow-auto max-h-96">
-                          {formattedArticle}
+                        <div className={`text-gray-800 dark:text-gray-200 font-mono text-sm leading-relaxed overflow-y-auto border border-gray-200 dark:border-gray-600 rounded p-3 bg-white dark:bg-gray-900 ${showFullContent ? '' : 'max-h-[800px]'}`}>
+                          <pre className="whitespace-pre-wrap break-words m-0">{formattedArticle}</pre>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            内容长度: {formattedArticle.length} 字符
+                            {(() => {
+                              const hasOpeningDiv = formattedArticle.includes('<div')
+                              const hasClosingDiv = formattedArticle.includes('</div>')
+                              const hasOpeningP = formattedArticle.includes('<p')
+                              const hasClosingP = formattedArticle.includes('</p>')
+                              const hasCompleteTags = hasOpeningDiv && hasClosingDiv && hasOpeningP && hasClosingP
+                              
+                              // 检查是否有未闭合的标签
+                              const divCount = (formattedArticle.match(/<div/g) || []).length
+                              const closingDivCount = (formattedArticle.match(/<\/div>/g) || []).length
+                              const pCount = (formattedArticle.match(/<p/g) || []).length
+                              const closingPCount = (formattedArticle.match(/<\/p>/g) || []).length
+                              
+                              const isBalanced = divCount === closingDivCount && pCount === closingPCount
+                              
+                              return hasCompleteTags && isBalanced ? ' ✅ HTML完整' : ' ⚠️ HTML可能不完整'
+                            })()}
+                          </div>
+                          <button
+                            onClick={() => setShowFullContent(!showFullContent)}
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            {showFullContent ? '收起内容' : '展开完整内容'}
+                          </button>
                         </div>
                       </div>
                     </div>

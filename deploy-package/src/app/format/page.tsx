@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { FileText, Wand2, Copy, Download, ArrowLeft, Send, Eye } from 'lucide-react'
+import { FileText, Wand2, Copy, Download, ArrowLeft, Send, Eye, Sparkles, CheckCircle, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
 
 export default function FormatPage() {
@@ -116,169 +116,196 @@ export default function FormatPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <header className="mb-8">
-          <div className="flex items-center mb-4">
-            <Link href="/" className="mr-4 p-2 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors">
-              <ArrowLeft className="w-6 h-6 text-gray-600 dark:text-gray-300" />
+        <header className="mb-12 animate-fade-in">
+          <div className="flex items-center mb-6">
+            <Link href="/" className="mr-4 p-2 hover:bg-white dark:hover:bg-gray-800 rounded-lg transition-colors group">
+              <ArrowLeft className="w-6 h-6 text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white" />
             </Link>
             <div className="flex items-center">
-              <Wand2 className="w-8 h-8 text-purple-600 mr-3" />
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                文章排版工具
-              </h1>
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-xl flex items-center justify-center mr-4">
+                <Wand2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                  文章排版工具
+                </h1>
+                <p className="text-lg text-gray-600 dark:text-gray-400">
+                  将您的文章自动转换为专业的公众号排版格式
+                </p>
+              </div>
             </div>
           </div>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
-            将您的文章自动转换为专业的公众号排版格式
-          </p>
         </header>
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Input Module */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white flex items-center">
-              <FileText className="w-6 h-6 mr-2 text-blue-500" />
-              输入文章
-            </h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  原始文章内容
-                </label>
-                <textarea
-                  value={inputArticle}
-                  onChange={(e) => setInputArticle(e.target.value)}
-                  placeholder="请粘贴您要排版的文章内容..."
-                  className="w-full h-96 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none font-mono text-sm"
-                />
+          <div className="animate-slide-in">
+            <div className="notion-card notion-card-hover p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-blue-500" />
+                  输入文章
+                </h2>
+                <span className="notion-badge notion-badge-blue">原始内容</span>
               </div>
               
-              <button
-                onClick={handleFormat}
-                disabled={isFormatting || !inputArticle.trim()}
-                className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
-              >
-                {isFormatting ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    排版中...
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-5 h-5 mr-2" />
-                    自动排版
-                  </>
-                )}
-              </button>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    原始文章内容
+                  </label>
+                  <textarea
+                    value={inputArticle}
+                    onChange={(e) => setInputArticle(e.target.value)}
+                    placeholder="请粘贴您要排版的文章内容..."
+                    className="notion-textarea h-96 font-mono text-sm"
+                  />
+                </div>
+                
+                <button
+                  onClick={handleFormat}
+                  disabled={isFormatting || !inputArticle.trim()}
+                  className="w-full notion-button notion-button-primary flex items-center justify-center py-3"
+                >
+                  {isFormatting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                      排版中...
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-5 h-5 mr-2" />
+                      自动排版
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Output Module */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-            <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white flex items-center">
-              <Wand2 className="w-6 h-6 mr-2 text-purple-500" />
-              排版结果
-            </h2>
-            
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                <p className="text-red-600 dark:text-red-400">{error}</p>
+          <div className="animate-slide-in">
+            <div className="notion-card notion-card-hover p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                  <Sparkles className="w-5 h-5 mr-2 text-purple-500" />
+                  排版结果
+                </h2>
+                {formattedArticle && (
+                  <span className="notion-badge notion-badge-green">已完成</span>
+                )}
               </div>
-            )}
-            
-            <div className="space-y-4">
-              {formattedArticle ? (
-                <>
-                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 font-mono text-sm leading-relaxed overflow-auto max-h-96">
-                        {formattedArticle}
-                      </pre>
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-3">
-                    <button
-                      onClick={handleCopy}
-                      className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                    >
-                      <Copy className="w-4 h-4 mr-2" />
-                      复制内容
-                    </button>
-                    <button
-                      onClick={handleDownload}
-                      className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      下载HTML
-                    </button>
-                    <button
-                      onClick={() => setShowPublishModal(true)}
-                      className="flex-1 flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      发布到公众号
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-                  <div className="text-center">
-                    <Wand2 className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>输入文章后点击排版按钮开始处理</p>
+              
+              {error && (
+                <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                  <div className="flex items-center">
+                    <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
+                    <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
                   </div>
                 </div>
               )}
+              
+              <div className="space-y-4">
+                {formattedArticle ? (
+                  <>
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                      <div className="prose prose-sm max-w-none dark:prose-invert">
+                        <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 font-mono text-sm leading-relaxed overflow-auto max-h-96">
+                          {formattedArticle}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={handleCopy}
+                        className="flex-1 notion-button notion-button-primary flex items-center justify-center"
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        复制内容
+                      </button>
+                      <button
+                        onClick={handleDownload}
+                        className="flex-1 notion-button notion-button-secondary flex items-center justify-center"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        下载HTML
+                      </button>
+                      <button
+                        onClick={() => setShowPublishModal(true)}
+                        className="flex-1 notion-button notion-button-primary flex items-center justify-center"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        发布到公众号
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+                    <div className="text-center">
+                      <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <Wand2 className="w-10 h-10 opacity-50" />
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400">输入文章后点击排版按钮开始处理</p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Features Section */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold text-center mb-8 text-gray-900 dark:text-white">
-            排版特色
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
-              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <FileText className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+        <div className="mt-20 animate-fade-in">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              排版特色
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              专业的公众号排版解决方案
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="notion-card notion-card-hover p-8 text-center group">
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <FileText className="w-8 h-8 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
                 专业排版
               </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 严格按照公众号排版规范，自动应用字体、颜色、间距等样式
               </p>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
-              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Wand2 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            <div className="notion-card notion-card-hover p-8 text-center group">
+              <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <Wand2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
               </div>
-              <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+              <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
                 智能优化
               </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
                 自动添加分割线、强调样式、章节编号，提升阅读体验
               </p>
             </div>
             
-                          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
-                <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Send className="w-6 h-6 text-green-600 dark:text-green-400" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
-                  一键发布
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">
-                  支持预览和直接发布到公众号，无需手动复制粘贴
-                </p>
+            <div className="notion-card notion-card-hover p-8 text-center group">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <Send className="w-8 h-8 text-green-600 dark:text-green-400" />
               </div>
+              <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                一键发布
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                支持预览和直接发布到公众号，无需手动复制粘贴
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -286,10 +313,13 @@ export default function FormatPage() {
       {/* 发布模态框 */}
       {showPublishModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-              发布到公众号
-            </h3>
+          <div className="notion-card p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                发布到公众号
+              </h3>
+              <span className="notion-badge notion-badge-purple">发布</span>
+            </div>
             
             <div className="space-y-4">
               <div>
@@ -300,7 +330,7 @@ export default function FormatPage() {
                   type="text"
                   value={publishData.title}
                   onChange={(e) => setPublishData({...publishData, title: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="notion-input"
                   placeholder="请输入文章标题"
                 />
               </div>
@@ -313,7 +343,7 @@ export default function FormatPage() {
                   type="text"
                   value={publishData.author}
                   onChange={(e) => setPublishData({...publishData, author: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="notion-input"
                   placeholder="请输入作者名称"
                 />
               </div>
@@ -325,7 +355,7 @@ export default function FormatPage() {
                 <textarea
                   value={publishData.digest}
                   onChange={(e) => setPublishData({...publishData, digest: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
+                  className="notion-textarea"
                   rows={3}
                   placeholder="请输入文章摘要"
                 />
@@ -339,7 +369,7 @@ export default function FormatPage() {
                   type="text"
                   value={publishData.openId}
                   onChange={(e) => setPublishData({...publishData, openId: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                  className="notion-input"
                   placeholder="用于预览的微信OpenID"
                 />
               </div>
@@ -348,14 +378,14 @@ export default function FormatPage() {
             <div className="flex space-x-3 mt-6">
               <button
                 onClick={() => setShowPublishModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+                className="flex-1 notion-button notion-button-secondary"
               >
                 取消
               </button>
               <button
                 onClick={() => handlePublish('preview')}
                 disabled={isPublishing}
-                className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+                className="flex-1 notion-button notion-button-primary flex items-center justify-center"
               >
                 {isPublishing ? (
                   <>
@@ -372,7 +402,7 @@ export default function FormatPage() {
               <button
                 onClick={() => handlePublish('publish')}
                 disabled={isPublishing}
-                className="flex-1 flex items-center justify-center px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-lg transition-colors"
+                className="flex-1 notion-button notion-button-primary flex items-center justify-center"
               >
                 {isPublishing ? (
                   <>

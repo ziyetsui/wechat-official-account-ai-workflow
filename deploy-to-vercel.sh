@@ -50,30 +50,54 @@ if [ -n "$(git status --porcelain)" ]; then
     git commit -m "feat: 准备部署到Vercel"
 fi
 
-# 检查是否已登录Vercel
-print_step "检查Vercel登录状态..."
-if ! vercel whoami &> /dev/null; then
-    print_message "请先登录Vercel..."
-    vercel login
-fi
+# 创建vercel.json配置文件
+print_step "创建Vercel配置文件..."
+
+cat > vercel.json << EOF
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/\$1"
+    }
+  ],
+  "env": {
+    "OPENAI_API_KEY": "@openai_api_key",
+    "WECHAT_APP_ID": "@wechat_app_id",
+    "WECHAT_APP_SECRET": "@wechat_app_secret"
+  }
+}
+EOF
+
+print_message "vercel.json配置文件已创建"
+
+# 提交配置文件
+git add vercel.json
+git commit -m "feat: 添加Vercel配置文件"
 
 # 部署到Vercel
 print_step "部署到Vercel..."
 vercel --prod
 
-print_message "✅ Vercel部署完成！"
+print_message "✅ 部署完成！"
 echo ""
 print_message "🎉 您的项目已成功部署到Vercel！"
 echo ""
 print_message "📋 下一步操作："
-echo "1. 在Vercel控制台配置环境变量"
-echo "2. 设置自定义域名（可选）"
-echo "3. 配置自动部署"
+echo "1. 在Vercel控制台中设置环境变量："
+echo "   - OPENAI_API_KEY"
+echo "   - WECHAT_APP_ID"
+echo "   - WECHAT_APP_SECRET"
+echo "2. 重新部署以应用环境变量"
 echo ""
-print_warning "注意：请确保在Vercel控制台中配置以下环境变量："
-echo "- AZURE_OPENAI_API_KEY"
-echo "- AZURE_OPENAI_ENDPOINT"
-echo "- AZURE_OPENAI_API_VERSION"
-echo "- AZURE_OPENAI_MODEL_NAME"
-echo "- WECHAT_APP_ID（可选）"
-echo "- WECHAT_APP_SECRET（可选）"
+print_message "🌐 您的网站地址："
+echo "请查看Vercel控制台获取部署URL"
+echo ""
+print_warning "注意：请确保在Vercel控制台中正确设置所有环境变量。"

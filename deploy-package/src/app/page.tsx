@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Bot, FileText, Image, Send, Sparkles, Type, Wand2 } from 'lucide-react'
+import { Bot, FileText, Image, Send, Sparkles, Type, Wand2, Plus, Settings, Download, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import ExportButton from '@/components/ExportButton'
 import AdvancedSettings from '@/components/AdvancedSettings'
+import ClientOnly from '@/components/ClientOnly'
 
 interface GeneratedContent {
   content: string
@@ -52,10 +53,27 @@ export default function Home() {
         })
       ])
 
+      // 检查响应状态
+      if (!contentRes.ok || !titlesRes.ok || !imagesRes.ok) {
+        let errorText = ''
+        try {
+          errorText = await contentRes.text()
+        } catch (e) {
+          errorText = '无法读取错误响应'
+        }
+        console.error('API响应错误:', {
+          contentStatus: contentRes.status,
+          titlesStatus: titlesRes.status,
+          imagesStatus: imagesRes.status,
+          errorText
+        })
+        throw new Error(`API请求失败: ${contentRes.status}`)
+      }
+
       const [contentData, titlesData, imagesData] = await Promise.all([
-        contentRes.json(),
-        titlesRes.json(),
-        imagesRes.json()
+        contentRes.json().catch(e => ({ success: false, error: 'JSON解析失败' })),
+        titlesRes.json().catch(e => ({ success: false, error: 'JSON解析失败' })),
+        imagesRes.json().catch(e => ({ success: false, error: 'JSON解析失败' }))
       ])
 
       if (contentData.success && titlesData.success && imagesData.success) {
@@ -65,6 +83,7 @@ export default function Home() {
           imageSuggestions: imagesData.data
         })
       } else {
+        console.error('API返回错误:', { contentData, titlesData, imagesData })
         throw new Error('生成失败，请重试')
       }
     } catch (error) {
@@ -76,234 +95,271 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <header className="text-center mb-12">
-          <div className="flex items-center justify-center mb-4">
-            <Bot className="w-12 h-12 text-blue-600 mr-3" />
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
-              微信公众号AI助手
-            </h1>
+        <header className="mb-12 animate-fade-in">
+          <div className="text-center">
+            <div className="flex items-center justify-center mb-6">
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mr-4">
+                <Bot className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                  微信公众号AI助手
+                </h1>
+                <p className="text-lg text-gray-600 dark:text-gray-400">
+                  使用AI技术提升公众号内容创作效率
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            使用AI技术提升公众号内容创作效率
-          </p>
         </header>
 
         {/* Main Content */}
-        <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Input Section */}
-            <div className="lg:col-span-1">
-              <div className="space-y-6">
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                  <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">
-                    <Sparkles className="w-6 h-6 inline mr-2 text-blue-500" />
-                    内容生成
-                  </h2>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        文章主题
-                      </label>
-                      <textarea
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        placeholder="请输入文章主题或关键词..."
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
-                        rows={4}
-                      />
-                    </div>
-                    
-                    <button
-                      onClick={handleGenerateContent}
-                      disabled={isGenerating || !topic.trim()}
-                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                          生成中...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-5 h-5 mr-2" />
-                          生成内容
-                        </>
-                      )}
-                    </button>
-                  </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Input Section */}
+          <div className="lg:col-span-1 space-y-6 animate-slide-in">
+            {/* Content Generation Card */}
+            <div className="notion-card notion-card-hover p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                  <Plus className="w-5 h-5 mr-2 text-blue-500" />
+                  内容生成
+                </h2>
+                <span className="notion-badge notion-badge-blue">AI驱动</span>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    文章主题
+                  </label>
+                  <textarea
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    placeholder="请输入文章主题或关键词..."
+                    className="notion-textarea"
+                    rows={4}
+                  />
                 </div>
-
-                {/* 高级设置 */}
-                <AdvancedSettings 
-                  settings={advancedSettings}
-                  onSettingsChange={setAdvancedSettings}
-                />
+                
+                <ClientOnly>
+                  <button
+                    onClick={handleGenerateContent}
+                    disabled={isGenerating || !topic.trim()}
+                    className="w-full notion-button notion-button-primary flex items-center justify-center py-3"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                        生成中...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5 mr-2" />
+                        生成内容
+                      </>
+                    )}
+                  </button>
+                </ClientOnly>
               </div>
             </div>
 
-            {/* Output Section */}
-            <div className="lg:col-span-2">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                <h2 className="text-2xl font-semibold mb-6 text-gray-900 dark:text-white">
-                  <FileText className="w-6 h-6 inline mr-2 text-green-500" />
-                  生成结果
-                </h2>
+            {/* Advanced Settings Card */}
+            <ClientOnly>
+              <AdvancedSettings 
+                settings={advancedSettings}
+                onSettingsChange={setAdvancedSettings}
+              />
+            </ClientOnly>
+
+            {/* Quick Actions Card */}
+            <div className="notion-card notion-card-hover p-6">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white flex items-center">
+                <Settings className="w-5 h-5 mr-2 text-gray-500" />
+                快速操作
+              </h3>
+              
+              <div className="space-y-3">
+                <Link 
+                  href="/format" 
+                  className="flex items-center p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <Wand2 className="w-5 h-5 mr-3 text-purple-500" />
+                  <span className="text-gray-700 dark:text-gray-300">文章排版工具</span>
+                </Link>
                 
-                {error && (
-                  <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                    <p className="text-red-600 dark:text-red-400">{error}</p>
-                  </div>
+                {generatedContent && (
+                  <button
+                    onClick={() => setGeneratedContent(null)}
+                    className="w-full flex items-center p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-gray-700 dark:text-gray-300"
+                  >
+                    <RefreshCw className="w-5 h-5 mr-3 text-gray-500" />
+                    重新生成
+                  </button>
                 )}
-                
-                <div className="min-h-[400px]">
-                  {generatedContent ? (
-                    <div>
-                      {/* 标签页导航 */}
-                      <div className="flex space-x-1 mb-6 border-b border-gray-200 dark:border-gray-700">
-                        <button
-                          onClick={() => setActiveTab('content')}
-                          className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                            activeTab === 'content'
-                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                          }`}
-                        >
-                          <FileText className="w-4 h-4 inline mr-2" />
-                          文章内容
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('titles')}
-                          className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                            activeTab === 'titles'
-                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                          }`}
-                        >
-                          <Type className="w-4 h-4 inline mr-2" />
-                          标题建议
-                        </button>
-                        <button
-                          onClick={() => setActiveTab('images')}
-                          className={`px-4 py-2 rounded-t-lg font-medium transition-colors ${
-                            activeTab === 'images'
-                              ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-                              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-                          }`}
-                        >
-                          <Image className="w-4 h-4 inline mr-2" />
-                          配图建议
-                        </button>
-                      </div>
-
-                      {/* 内容显示 */}
-                      <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                        {activeTab === 'content' && (
-                          <div className="prose prose-lg max-w-none dark:prose-invert">
-                            <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 font-sans leading-relaxed">
-                              {generatedContent.content}
-                            </pre>
-                          </div>
-                        )}
-                        
-                        {activeTab === 'titles' && (
-                          <div className="space-y-3">
-                            {generatedContent.titles.map((title, index) => (
-                              <div key={index} className="p-3 bg-white dark:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-500">
-                                <p className="text-gray-800 dark:text-gray-200 font-medium">{title}</p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {activeTab === 'images' && (
-                          <div className="prose prose-lg max-w-none dark:prose-invert">
-                            <pre className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 font-sans leading-relaxed">
-                              {generatedContent.imageSuggestions}
-                            </pre>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 操作按钮 */}
-                      <div className="mt-4 flex space-x-3">
-                        <ExportButton content={generatedContent} topic={topic} />
-                        <button 
-                          onClick={() => setGeneratedContent(null)}
-                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-                        >
-                          重新生成
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
-                      <div className="text-center">
-                        <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p>输入主题后点击生成按钮开始创作</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </div>
 
-          {/* Features Section */}
-          <div className="mt-16">
-            <h2 className="text-3xl font-bold text-center mb-12 text-gray-900 dark:text-white">
-              功能特色
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
-                <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-                </div>
-                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">
-                  AI内容生成
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  基于主题智能生成高质量的文章内容，提升创作效率
-                </p>
+          {/* Output Section */}
+          <div className="lg:col-span-2 animate-slide-in">
+            <div className="notion-card notion-card-hover p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                  <FileText className="w-5 h-5 mr-2 text-green-500" />
+                  生成结果
+                </h2>
+                {generatedContent && (
+                  <span className="notion-badge notion-badge-green">已完成</span>
+                )}
               </div>
               
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
-                <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Image className="w-8 h-8 text-green-600 dark:text-green-400" />
-                </div>
-                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">
-                  配图建议
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  为文章推荐合适的配图，增强视觉效果和阅读体验
-                </p>
-              </div>
+              <ClientOnly>
+                {error && (
+                  <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
+                  </div>
+                )}
+              </ClientOnly>
               
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 text-center">
-                <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-                </div>
-                <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">
-                  智能优化
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300">
-                  自动优化文章结构、标题和关键词，提升SEO效果
-                </p>
+              <div className="min-h-[500px]">
+                <ClientOnly>
+                  {generatedContent ? (
+                    <div className="space-y-6">
+                    {/* 标签页导航 */}
+                    <div className="flex space-x-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                      <button
+                        onClick={() => setActiveTab('content')}
+                        className={`notion-tab flex-1 flex items-center justify-center ${
+                          activeTab === 'content' ? 'notion-tab-active' : 'notion-tab-inactive'
+                        }`}
+                      >
+                        <FileText className="w-4 h-4 mr-2" />
+                        文章内容
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('titles')}
+                        className={`notion-tab flex-1 flex items-center justify-center ${
+                          activeTab === 'titles' ? 'notion-tab-active' : 'notion-tab-inactive'
+                        }`}
+                      >
+                        <Type className="w-4 h-4 mr-2" />
+                        标题建议
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('images')}
+                        className={`notion-tab flex-1 flex items-center justify-center ${
+                          activeTab === 'images' ? 'notion-tab-active' : 'notion-tab-inactive'
+                        }`}
+                      >
+                        <Image className="w-4 h-4 mr-2" />
+                        配图建议
+                      </button>
+                    </div>
+
+                    {/* 内容显示 */}
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+                      {activeTab === 'content' && (
+                        <div className="prose prose-lg max-w-none dark:prose-invert">
+                          <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 font-sans leading-relaxed text-sm">
+                            {generatedContent.content}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {activeTab === 'titles' && (
+                        <div className="space-y-3">
+                          {generatedContent.titles.map((title, index) => (
+                            <div key={index} className="p-4 bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
+                              <div className="flex items-center">
+                                <span className="w-6 h-6 bg-blue-100 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-medium mr-3">
+                                  {index + 1}
+                                </span>
+                                <p className="text-gray-800 dark:text-gray-200 font-medium">{title}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {activeTab === 'images' && (
+                        <div className="prose prose-lg max-w-none dark:prose-invert">
+                          <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200 font-sans leading-relaxed text-sm">
+                            {generatedContent.imageSuggestions}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 操作按钮 */}
+                    <div className="flex space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <ExportButton content={generatedContent} topic={topic} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+                    <div className="text-center">
+                      <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <FileText className="w-10 h-10 opacity-50" />
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-400">输入主题后点击生成按钮开始创作</p>
+                    </div>
+                  </div>
+                )}
+                </ClientOnly>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Features Section */}
+        <div className="mt-20 animate-fade-in">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+              功能特色
+            </h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              专业的AI驱动内容创作工具
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="notion-card notion-card-hover p-8 text-center group">
+              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <Sparkles className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                AI内容生成
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                基于主题智能生成高质量的文章内容，提升创作效率
+              </p>
+            </div>
             
-            {/* 排版工具链接 */}
-            <div className="mt-12 text-center">
-              <Link 
-                href="/format" 
-                className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
-              >
-                <Wand2 className="w-5 h-5 mr-2" />
-                文章排版工具
-              </Link>
+            <div className="notion-card notion-card-hover p-8 text-center group">
+              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <Image className="w-8 h-8 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                配图建议
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                为文章推荐合适的配图，增强视觉效果和阅读体验
+              </p>
+            </div>
+            
+            <div className="notion-card notion-card-hover p-8 text-center group">
+              <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <Wand2 className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+                智能排版
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                自动优化文章结构、标题和关键词，提升SEO效果
+              </p>
             </div>
           </div>
         </div>

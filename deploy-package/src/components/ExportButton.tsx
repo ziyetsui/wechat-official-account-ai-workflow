@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Download } from 'lucide-react'
+import { Download, FileText, Share2 } from 'lucide-react'
 
 interface ExportButtonProps {
   content: {
@@ -65,19 +65,19 @@ ${content.imageSuggestions}
   }
 
   return (
-    <div className="flex space-x-2">
+    <div className="flex space-x-3">
       <button
         onClick={handleExport}
-        className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+        className="notion-button notion-button-primary flex items-center"
       >
         <Download className="w-4 h-4 mr-2" />
         导出JSON
       </button>
       <button
         onClick={handleExportText}
-        className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+        className="notion-button notion-button-secondary flex items-center"
       >
-        <Download className="w-4 h-4 mr-2" />
+        <FileText className="w-4 h-4 mr-2" />
         导出文本
       </button>
     </div>

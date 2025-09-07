@@ -1,86 +1,82 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { FORMATTING_PROMPT_TEMPLATE } from '@/lib/format-prompts'
 
-// 直接调用Azure OpenAI API的函数
-async function callAzureOpenAI(prompt: string, maxTokens: number = 16000) {
-  // 使用环境变量或默认配置
-  const base_url = process.env.AZURE_OPENAI_BASE_URL || process.env.GEMINI_BASE_URL || "https://gpt-i18n.byteintl.net/gpt/openapi/online/v2/crawl/openapi/deployments/gpt_openapi"
-  const api_version = process.env.AZURE_OPENAI_API_VERSION || "2024-03-01-preview"
-  const ak = process.env.AZURE_OPENAI_API_KEY || process.env.GEMINI_API_KEY || "I2brwSdmty3dYeCtPIderK1lJzrIHYcc_GPT_AK"
-  const model_name = process.env.AZURE_OPENAI_MODEL_NAME || "gemini-2.5-pro"
+// 使用Gemini API进行排版（与generate API保持一致）
+async function callGeminiForFormat(prompt: string, maxTokens: number = 16000) {
+  const apiKey = process.env.GEMINI_API_KEY
+  const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com'
+  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro-preview-05-06'
   
-  console.log('Format API 配置:', {
-    base_url: base_url.substring(0, 50) + '...',
-    api_version,
-    has_api_key: !!ak,
-    model_name
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY 环境变量未配置')
+  }
+
+  console.log('Format API Gemini配置:', {
+    baseUrl,
+    modelName,
+    hasApiKey: !!apiKey
   })
 
-  const apiUrl = `${base_url}/chat/completions?api-version=${api_version}`
-  
-  // 添加超时控制
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒超时
   
   try {
-    const response = await fetch(apiUrl, {
+    const response = await fetch(`${baseUrl}/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'api-key': ak,
       },
       body: JSON.stringify({
-        model: model_name,
-        messages: [
+        contents: [
           {
-            role: "user",
-            content: prompt
+            parts: [
+              {
+                text: prompt
+              }
+            ]
           }
         ],
-        max_tokens: maxTokens,
-        temperature: 0.3,
-        stream: false, // 确保不使用流式响应
+        generationConfig: {
+          maxOutputTokens: maxTokens,
+          temperature: 0.3,
+        }
       }),
       signal: controller.signal
     })
     
     clearTimeout(timeoutId)
-
-    if (!response.ok) {
+    
+    if (response.ok) {
+      const data = await response.json()
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '排版失败'
+      
+      console.log('Gemini Format API 响应成功，内容长度:', content.length)
+      
+      // 检查HTML完整性
+      const hasOpeningDiv = content.includes('<div')
+      const hasClosingDiv = content.includes('</div>')
+      const hasOpeningP = content.includes('<p')
+      const hasClosingP = content.includes('</p>')
+      
+      console.log('HTML完整性检查:')
+      console.log('- 包含开始div标签:', hasOpeningDiv)
+      console.log('- 包含结束div标签:', hasClosingDiv)
+      console.log('- 包含开始p标签:', hasOpeningP)
+      console.log('- 包含结束p标签:', hasClosingP)
+      
+      // 如果HTML不完整，尝试修复
+      if (hasOpeningDiv && !hasClosingDiv) {
+        console.warn('检测到不完整的HTML，尝试修复...')
+        const fixedContent = content + '\n</div>'
+        console.log('已添加结束div标签')
+        return fixedContent
+      }
+      
+      return content
+    } else {
       const errorText = await response.text()
-      throw new Error(`API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
+      throw new Error(`Gemini API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
     }
-
-    const data = await response.json()
-    const content = data.choices?.[0]?.message?.content || '排版失败'
-    
-    // 检查是否因为token限制而被截断
-    if (data.choices?.[0]?.finish_reason === 'length') {
-      console.warn('警告：响应因token限制被截断，可能需要增加max_tokens')
-    }
-    
-    // 检查HTML完整性
-    const hasOpeningDiv = content.includes('<div')
-    const hasClosingDiv = content.includes('</div>')
-    const hasOpeningP = content.includes('<p')
-    const hasClosingP = content.includes('</p>')
-    
-    console.log('HTML完整性检查:')
-    console.log('- 包含开始div标签:', hasOpeningDiv)
-    console.log('- 包含结束div标签:', hasClosingDiv)
-    console.log('- 包含开始p标签:', hasOpeningP)
-    console.log('- 包含结束p标签:', hasClosingP)
-    console.log('- 内容长度:', content.length)
-    
-    // 如果HTML不完整，尝试修复
-    if (hasOpeningDiv && !hasClosingDiv) {
-      console.warn('检测到不完整的HTML，尝试修复...')
-      const fixedContent = content + '\n</div>'
-      console.log('已添加结束div标签')
-      return fixedContent
-    }
-    
-    return content
     
   } catch (error) {
     clearTimeout(timeoutId)
@@ -109,17 +105,17 @@ export async function POST(request: NextRequest) {
 
     console.log('Format API 调用开始，文章长度:', article.length)
 
-    // 临时解决方案：如果API调用失败，返回一个基本的格式化结果
+    // 使用Gemini API进行排版
     try {
       const prompt = FORMATTING_PROMPT_TEMPLATE.replace('{{article}}', article)
-      const formattedContent = await callAzureOpenAI(prompt, 16000)
+      const formattedContent = await callGeminiForFormat(prompt, 16000)
       
       return NextResponse.json({ 
         success: true, 
         data: formattedContent
       })
     } catch (apiError) {
-      console.warn('API调用失败，使用备用方案:', apiError)
+      console.warn('Gemini API调用失败，使用备用方案:', apiError)
       
       // 备用方案：返回基本的HTML格式化
       const basicFormattedContent = `

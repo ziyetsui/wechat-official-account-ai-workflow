@@ -27,9 +27,16 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
   const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'
   
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 15000) // 15秒超时
+  const timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
   
   try {
+    console.log('发起API请求:', {
+      baseUrl,
+      modelName,
+      maxTokens,
+      promptLength: prompt.length
+    })
+    
     const response = await fetch(`${baseUrl}/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
@@ -57,6 +64,12 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
     
     if (response.ok) {
       const data = await response.json()
+      console.log('API响应成功:', {
+        status: response.status,
+        hasCandidates: !!data.candidates,
+        candidateCount: data.candidates?.length || 0
+      })
+      
       return {
         success: true,
         data,
@@ -76,10 +89,11 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
     
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
+        console.error('API请求超时')
         return {
           success: false,
           error: '请求超时',
-          details: 'API调用超过30秒未响应'
+          details: 'API调用超过10秒未响应，请稍后重试'
         }
       }
       return {

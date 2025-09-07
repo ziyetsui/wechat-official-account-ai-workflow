@@ -2,7 +2,7 @@
 
 const https = require('https');
 
-console.log('🧪 测试所有更新后的 API（ChatAI API）')
+console.log('🧪 测试核心功能 API（ChatAI API）')
 console.log('==================================================')
 console.log('')
 
@@ -71,11 +71,6 @@ async function testAPI(endpoint, data, description) {
 async function main() {
   const tests = [
     {
-      endpoint: '/api/chat',
-      data: { message: '你好，请简单介绍一下人工智能' },
-      description: '聊天功能测试（ChatAI API）'
-    },
-    {
       endpoint: '/api/generate',
       data: { topic: '人工智能', type: 'content' },
       description: '内容生成测试（ChatAI API）'
@@ -86,13 +81,18 @@ async function main() {
       description: '标题生成测试（ChatAI API）'
     },
     {
+      endpoint: '/api/generate',
+      data: { topic: '人工智能', type: 'outline' },
+      description: '大纲生成测试（ChatAI API）'
+    },
+    {
       endpoint: '/api/format',
       data: { article: '这是一篇关于人工智能的测试文章。人工智能正在改变我们的世界，从智能手机到自动驾驶汽车，AI技术无处不在。' },
       description: '文章排版测试（ChatAI API）'
     }
   ];
 
-  console.log('📡 开始测试所有更新后的 API...')
+  console.log('📡 开始测试核心功能 API...')
   console.log('')
 
   let successCount = 0
@@ -146,21 +146,29 @@ async function main() {
   console.log('')
   
   if (successCount === totalCount) {
-    console.log('🎉 所有 API 都工作正常！ChatAI API 集成成功！')
+    console.log('🎉 所有核心功能 API 都工作正常！ChatAI API 集成成功！')
   } else {
     console.log('⚠️ 部分 API 存在问题，请检查错误信息')
   }
   
   console.log('')
-  console.log('🌐 更新后的 API 端点:')
-  console.log('- 聊天: /api/chat (ChatAI API)')
+  console.log('🌐 核心功能 API 端点:')
   console.log('- 内容生成: /api/generate (ChatAI API)')
+  console.log('  * 文章生成: type=content')
+  console.log('  * 标题生成: type=title')
+  console.log('  * 大纲生成: type=outline')
   console.log('- 文章排版: /api/format (ChatAI API)')
   console.log('')
   console.log('💡 测试命令示例:')
-  console.log('curl -X POST "https://wechat-official-account-ai-workflow-ivory.vercel.app/api/chat" \\')
+  console.log('# 生成文章')
+  console.log('curl -X POST "https://wechat-official-account-ai-workflow-ivory.vercel.app/api/generate" \\')
   console.log('  -H "Content-Type: application/json" \\')
-  console.log('  -d \'{"message": "你好"}\'')
+  console.log('  -d \'{"topic": "人工智能", "type": "content"}\'')
+  console.log('')
+  console.log('# 文章排版')
+  console.log('curl -X POST "https://wechat-official-account-ai-workflow-ivory.vercel.app/api/format" \\')
+  console.log('  -H "Content-Type: application/json" \\')
+  console.log('  -d \'{"article": "你的文章内容"}\'')
 }
 
 main();

@@ -46,6 +46,8 @@ export async function GET(request: NextRequest) {
       
       if (response.ok) {
         const data = await response.json()
+        console.log('API 响应数据:', JSON.stringify(data, null, 2))
+        
         const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '无响应内容'
         
         console.log('API 调用成功:', { success: true, content })
@@ -58,7 +60,8 @@ export async function GET(request: NextRequest) {
             modelName,
             hasApiKey: !!apiKey
           },
-          response: content
+          response: content,
+          rawData: data
         })
       } else {
         const errorText = await response.text()

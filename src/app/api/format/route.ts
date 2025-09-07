@@ -1,45 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { FORMATTING_PROMPT_TEMPLATE } from '@/lib/format-prompts'
 
-// 使用Gemini API进行排版（与generate API保持一致）
-async function callGeminiForFormat(prompt: string, maxTokens: number = 16000) {
-  const apiKey = process.env.GEMINI_API_KEY
-  const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com'
-  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro-preview-05-06'
+// 使用Azure OpenAI API进行排版
+async function callAzureOpenAIForFormat(prompt: string, maxTokens: number = 32000) {
+  const baseUrl = process.env.AZURE_OPENAI_BASE_URL || "https://gpt-i18n.byteintl.net/gpt/openapi/online/v2/crawl/openapi/deployments/gpt_openapi"
+  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-03-01-preview"
+  const apiKey = process.env.AZURE_OPENAI_API_KEY || "I2brwSdmty3dYeCtPIderK1lJzrIHYcc_GPT_AK"
+  const modelName = process.env.AZURE_OPENAI_MODEL_NAME || "gemini-2.5-pro"
   
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY 环境变量未配置')
-  }
-
-  console.log('Format API Gemini配置:', {
-    baseUrl,
+  console.log('Format API Azure OpenAI配置:', {
+    baseUrl: baseUrl.substring(0, 50) + '...',
+    apiVersion,
     modelName,
-    hasApiKey: !!apiKey
+    hasApiKey: !!apiKey,
+    maxTokens
   })
 
+  const apiUrl = `${baseUrl}/chat/completions?api-version=${apiVersion}`
+  
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒超时
   
   try {
-    const response = await fetch(`${baseUrl}/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'api-key': apiKey,
       },
       body: JSON.stringify({
-        contents: [
+        model: modelName,
+        messages: [
           {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
+            role: "user",
+            content: prompt
           }
         ],
-        generationConfig: {
-          maxOutputTokens: maxTokens,
-          temperature: 0.3,
-        }
+        max_tokens: maxTokens,
+        temperature: 0.3,
+        stream: false,
       }),
       signal: controller.signal
     })
@@ -48,9 +47,9 @@ async function callGeminiForFormat(prompt: string, maxTokens: number = 16000) {
     
     if (response.ok) {
       const data = await response.json()
-      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '排版失败'
+      const content = data.choices?.[0]?.message?.content || '排版失败'
       
-      console.log('Gemini Format API 响应成功，内容长度:', content.length)
+      console.log('Azure OpenAI Format API 响应成功，内容长度:', content.length)
       
       // 检查HTML完整性
       const hasOpeningDiv = content.includes('<div')
@@ -75,7 +74,7 @@ async function callGeminiForFormat(prompt: string, maxTokens: number = 16000) {
       return content
     } else {
       const errorText = await response.text()
-      throw new Error(`Gemini API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
+      throw new Error(`Azure OpenAI API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
     }
     
   } catch (error) {
@@ -105,31 +104,18 @@ export async function POST(request: NextRequest) {
 
     console.log('Format API 调用开始，文章长度:', article.length)
 
-    // 使用Gemini API进行排版
+    // 使用Azure OpenAI API进行排版
     try {
-      // 使用简化的prompt模板
-      const simplePrompt = `请将以下文章转换为公众号排版格式的HTML代码：
-
-要求：
-1. 使用HTML格式输出
-2. 添加适当的标题样式（h1, h2等）
-3. 设置合适的字体、颜色和间距
-4. 保持原文内容不变
-5. 使用内联CSS样式
-
-文章内容：
-${article}
-
-请直接输出HTML代码，不要包含任何解释文字。`
-      
-      const formattedContent = await callGeminiForFormat(simplePrompt, 8000)
+      // 使用完整的prompt模板
+      const prompt = FORMATTING_PROMPT_TEMPLATE.replace('{{article}}', article)
+      const formattedContent = await callAzureOpenAIForFormat(prompt, 32000)
       
       return NextResponse.json({ 
         success: true, 
         data: formattedContent
       })
     } catch (apiError) {
-      console.warn('Gemini API调用失败，使用备用方案:', apiError)
+      console.warn('Azure OpenAI API调用失败，使用备用方案:', apiError)
       
       // 备用方案：返回基本的HTML格式化
       const basicFormattedContent = `

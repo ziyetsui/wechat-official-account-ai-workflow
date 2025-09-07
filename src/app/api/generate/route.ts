@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// 使用ChatAI API的调用函数
+// 使用Gemini API的调用函数
 async function safeApiCall(prompt: string, maxTokens: number = 2000) {
-  const apiKey = process.env.CHATA_API_KEY || "sk-2dFvkITb1mr3yG7FdIYkc62mZPZKMSIsvdU0dLKaiyduuO3B"
-  const baseUrl = process.env.CHATA_BASE_URL || "https://www.chataiapi.com/v1"
-  const modelName = process.env.CHATA_MODEL_NAME || "gpt-3.5-turbo"
+  const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAN9X9v0GYqNnAu01XqYBL6oR0jAxGBpms"
+  const baseUrl = process.env.GEMINI_BASE_URL || "https://api.246520.xyz"
+  const modelName = process.env.GEMINI_MODEL_NAME || "gemini-2.5-pro-preview-05-06"
   
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 15000) // 15秒超时
   
   try {
-    console.log('发起ChatAI API请求:', {
+    console.log('发起Gemini API请求:', {
       baseUrl,
       modelName,
       maxTokens,
@@ -18,24 +18,27 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
     })
     
     const requestBody = {
-      model: modelName,
-      messages: [
+      contents: [
         {
-          role: 'user',
-          content: prompt
+          parts: [
+            {
+              text: prompt
+            }
+          ]
         }
       ],
-      max_tokens: maxTokens,
-      temperature: 0.7
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+        temperature: 0.7
+      }
     }
     
     console.log('请求体:', JSON.stringify(requestBody, null, 2))
     
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    const response = await fetch(`${baseUrl}/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody),
       signal: controller.signal
@@ -45,12 +48,10 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
     
     if (response.ok) {
       const data = await response.json()
-      console.log('ChatAI API响应成功:', {
+      console.log('Gemini API响应成功:', {
         status: response.status,
-        model: data.model,
-        usage: data.usage,
-        hasChoices: !!data.choices,
-        choiceCount: data.choices?.length || 0
+        hasCandidates: !!data.candidates,
+        candidateCount: data.candidates?.length || 0
       })
       
       return {
@@ -60,7 +61,7 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
       }
     } else {
       const errorText = await response.text()
-      console.error('ChatAI API响应失败:', {
+      console.error('Gemini API响应失败:', {
         status: response.status,
         statusText: response.statusText,
         errorText
@@ -78,14 +79,14 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
     
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        console.error('ChatAI API请求超时')
+        console.error('Gemini API请求超时')
         return {
           success: false,
           error: '请求超时',
-          details: 'API调用超过15秒未响应，请稍后重试'
+          details: 'Gemini API调用超过15秒未响应，请稍后重试'
         }
       }
-      console.error('ChatAI API请求异常:', error.message)
+      console.error('Gemini API请求异常:', error.message)
       return {
         success: false,
         error: error.message,
@@ -102,25 +103,25 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
   }
 }
 
-// 调用ChatAI API
-async function callChatAI(prompt: string, maxTokens: number = 2000) {
+// 调用Gemini API
+async function callGemini(prompt: string, maxTokens: number = 2000) {
   const result = await safeApiCall(prompt, maxTokens)
   
   if (!result.success) {
-    throw new Error(`ChatAI API调用失败: ${result.error} - ${result.details}`)
+    throw new Error(`Gemini API调用失败: ${result.error} - ${result.details}`)
   }
 
-  console.log('ChatAI响应:', { success: true, model: result.data.model })
+  console.log('Gemini响应:', { success: true })
   
   // 检查响应结构
-  const choice = result.data.choices?.[0]
-  if (choice?.message?.content) {
-    const content = choice.message.content
+  const candidate = result.data.candidates?.[0]
+  if (candidate?.content?.parts?.[0]?.text) {
+    const content = candidate.content.parts[0].text
     console.log('API返回内容长度:', content.length)
     console.log('API返回内容预览:', content.substring(0, 200))
     return content
-  } else if (choice?.finish_reason === 'length') {
-    console.warn('API响应被截断，finish_reason:', choice.finish_reason)
+  } else if (candidate?.finishReason === 'MAX_TOKENS') {
+    console.warn('API响应被截断，finishReason:', candidate.finishReason)
     throw new Error('生成内容被截断（达到最大token限制），请尝试减少输入长度或增加max_tokens')
   } else {
     console.error('API响应结构异常:', JSON.stringify(result.data, null, 2))
@@ -137,7 +138,7 @@ async function generateContent(topic: string, settings?: any): Promise<string> {
 
 请直接输出文章内容，不需要任何说明或标题。`
 
-  return await callChatAI(prompt, 2000)
+  return await callGemini(prompt, 2000)
 }
 
 async function generateTitle(topic: string): Promise<string> {
@@ -158,7 +159,7 @@ async function generateOutline(topic: string): Promise<string> {
 
 请直接输出大纲内容。`
 
-  return await callChatAI(prompt, 800)
+  return await callGemini(prompt, 800)
 }
 
 export async function POST(request: NextRequest) {
@@ -200,13 +201,13 @@ export async function POST(request: NextRequest) {
       })
 
     } catch (apiError) {
-      console.error('ChatAI API调用失败，错误详情:', apiError)
+      console.error('Gemini API调用失败，错误详情:', apiError)
 
       // 不使用备用内容，直接返回错误
       return NextResponse.json({ 
         success: false, 
         error: 'AI内容生成服务暂时不可用',
-        message: 'ChatAI API调用失败，请稍后重试',
+        message: 'Gemini API调用失败，请稍后重试',
         details: apiError instanceof Error ? apiError.message : String(apiError)
       }, { status: 500 })
     }

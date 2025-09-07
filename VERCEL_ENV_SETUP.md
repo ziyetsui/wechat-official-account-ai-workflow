@@ -7,11 +7,11 @@
 
 请在 Vercel 控制台中配置以下环境变量：
 
-### ChatAI API 配置
+### Gemini API 配置
 ```
-CHATA_API_KEY = sk-2dFvkITb1mr3yG7FdIYkc62mZPZKMSIsvdU0dLKaiyduuO3B
-CHATA_BASE_URL = https://www.chataiapi.com/v1
-CHATA_MODEL_NAME = gpt-3.5-turbo
+GEMINI_API_KEY = AIzaSyAN9X9v0GYqNnAu01XqYBL6oR0jAxGBpms
+GEMINI_BASE_URL = https://api.246520.xyz
+GEMINI_MODEL_NAME = gemini-2.5-pro-preview-05-06
 ```
 
 ## 🔧 配置步骤
@@ -33,20 +33,20 @@ CHATA_MODEL_NAME = gpt-3.5-turbo
    - 逐个添加以下变量：
 
    **变量1：**
-   - Name: `CHATA_API_KEY`
-   - Value: `sk-2dFvkITb1mr3yG7FdIYkc62mZPZKMSIsvdU0dLKaiyduuO3B`
+   - Name: `GEMINI_API_KEY`
+   - Value: `AIzaSyAN9X9v0GYqNnAu01XqYBL6oR0jAxGBpms`
    - Environment: 选择 "Production", "Preview", "Development"
    - 点击 "Save"
 
    **变量2：**
-   - Name: `CHATA_BASE_URL`
-   - Value: `https://www.chataiapi.com/v1`
+   - Name: `GEMINI_BASE_URL`
+   - Value: `https://api.246520.xyz`
    - Environment: 选择 "Production", "Preview", "Development"
    - 点击 "Save"
 
    **变量3：**
-   - Name: `CHATA_MODEL_NAME`
-   - Value: `gpt-3.5-turbo`
+   - Name: `GEMINI_MODEL_NAME`
+   - Value: `gemini-2.5-pro-preview-05-06`
    - Environment: 选择 "Production", "Preview", "Development"
    - 点击 "Save"
 

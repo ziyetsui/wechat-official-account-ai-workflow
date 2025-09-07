@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-// 使用ChatAI API的排版函数
-async function callChatAIForFormat(prompt: string, maxTokens: number = 2000) {
-  const apiKey = process.env.CHATA_API_KEY || "sk-2dFvkITb1mr3yG7FdIYkc62mZPZKMSIsvdU0dLKaiyduuO3B"
-  const baseUrl = process.env.CHATA_BASE_URL || "https://www.chataiapi.com/v1"
-  const modelName = process.env.CHATA_MODEL_NAME || "gpt-3.5-turbo"
+// 使用Gemini API的排版函数
+async function callGeminiForFormat(prompt: string, maxTokens: number = 2000) {
+  const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAN9X9v0GYqNnAu01XqYBL6oR0jAxGBpms"
+  const baseUrl = process.env.GEMINI_BASE_URL || "https://api.246520.xyz"
+  const modelName = process.env.GEMINI_MODEL_NAME || "gemini-2.5-pro-preview-05-06"
   
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 15000) // 15秒超时
   
   try {
-    console.log('发起ChatAI API排版请求:', {
+    console.log('发起Gemini API排版请求:', {
       baseUrl,
       modelName,
       maxTokens,
@@ -18,24 +18,27 @@ async function callChatAIForFormat(prompt: string, maxTokens: number = 2000) {
     })
     
     const requestBody = {
-      model: modelName,
-      messages: [
+      contents: [
         {
-          role: 'user',
-          content: prompt
+          parts: [
+            {
+              text: prompt
+            }
+          ]
         }
       ],
-      max_tokens: maxTokens,
-      temperature: 0.3
+      generationConfig: {
+        maxOutputTokens: maxTokens,
+        temperature: 0.3
+      }
     }
     
     console.log('请求体:', JSON.stringify(requestBody, null, 2))
     
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    const response = await fetch(`${baseUrl}/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify(requestBody),
       signal: controller.signal
@@ -44,21 +47,19 @@ async function callChatAIForFormat(prompt: string, maxTokens: number = 2000) {
     clearTimeout(timeoutId)
     
     if (response.ok) {
-      const data = await response.json()
-      console.log('ChatAI API排版响应成功:', {
+  const data = await response.json()
+      console.log('Gemini API排版响应成功:', {
         status: response.status,
-        model: data.model,
-        usage: data.usage,
-        hasChoices: !!data.choices,
-        choiceCount: data.choices?.length || 0
+        hasCandidates: !!data.candidates,
+        candidateCount: data.candidates?.length || 0
       })
       
       // 检查响应结构
-      const choice = data.choices?.[0]
+      const candidate = data.candidates?.[0]
       let content = '排版失败'
       
-      if (choice?.message?.content) {
-        content = choice.message.content
+      if (candidate?.content?.parts?.[0]?.text) {
+        content = candidate.content.parts[0].text
         console.log('API返回内容长度:', content.length)
         console.log('API返回内容预览:', content.substring(0, 200))
         
@@ -67,45 +68,45 @@ async function callChatAIForFormat(prompt: string, maxTokens: number = 2000) {
           console.warn('API返回内容不包含HTML标签，内容:', content)
           throw new Error('API返回内容格式不正确，不包含HTML标签')
         }
-      } else if (choice?.finish_reason === 'length') {
+      } else if (candidate?.finishReason === 'MAX_TOKENS') {
         content = '排版内容被截断（达到最大token限制），请尝试减少输入长度'
-        console.warn('API响应被截断，finish_reason:', choice.finish_reason)
-      } else if (choice?.finish_reason) {
-        content = `排版完成，原因：${choice.finish_reason}`
-        console.warn('API响应完成，finish_reason:', choice.finish_reason)
+        console.warn('API响应被截断，finishReason:', candidate.finishReason)
+      } else if (candidate?.finishReason) {
+        content = `排版完成，原因：${candidate.finishReason}`
+        console.warn('API响应完成，finishReason:', candidate.finishReason)
       } else {
         console.error('API响应结构异常:', JSON.stringify(data, null, 2))
         throw new Error('API响应格式异常，没有找到有效内容')
-      }
-      
-      // 检查HTML完整性
+  }
+  
+  // 检查HTML完整性
       if (content.includes('<') && content.includes('>')) {
         // 确保有基本的HTML结构
         if (!content.includes('<div') && !content.includes('<p') && !content.includes('<h')) {
           console.warn('HTML结构不完整，添加基础结构')
           content = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">${content}</div>`
         }
-      }
-      
-      return content
+  }
+  
+  return content
     } else {
       const errorText = await response.text()
-      console.error('ChatAI API排版响应失败:', {
+      console.error('Gemini API排版响应失败:', {
         status: response.status,
         statusText: response.statusText,
         errorText
       })
-      throw new Error(`ChatAI API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
+      throw new Error(`Gemini API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
     }
   } catch (error) {
     clearTimeout(timeoutId)
     
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        console.error('ChatAI API排版请求超时')
-        throw new Error('请求超时 - API调用超过15秒未响应，请稍后重试')
+        console.error('Gemini API排版请求超时')
+        throw new Error('请求超时 - Gemini API调用超过15秒未响应，请稍后重试')
       }
-      console.error('ChatAI API排版请求异常:', error.message)
+      console.error('Gemini API排版请求异常:', error.message)
       throw error
     }
     
@@ -293,25 +294,25 @@ ${article}
 
 请直接输出HTML代码，不要包含任何说明文字。`
 
-      console.log('开始调用ChatAI API进行排版...')
-      const formattedContent = await callChatAIForFormat(prompt, 2000)
-      console.log('ChatAI API排版成功，返回内容长度:', formattedContent.length)
+      console.log('开始调用Gemini API进行排版...')
+      const formattedContent = await callGeminiForFormat(prompt, 2000)
+      console.log('Gemini API排版成功，返回内容长度:', formattedContent.length)
       
       // 将AI生成的内容插入到自定义模板中
       const finalContent = CUSTOM_FORMATTING_TEMPLATE.replace('<!-- ARTICLE_CONTENT_PLACEHOLDER -->', formattedContent)
-      
-      return NextResponse.json({ 
-        success: true, 
+
+    return NextResponse.json({ 
+      success: true, 
         data: finalContent
       })
     } catch (apiError) {
-      console.error('ChatAI API调用失败，错误详情:', apiError)
+      console.error('Gemini API调用失败，错误详情:', apiError)
       
       // 不使用备用方案，直接返回错误
       return NextResponse.json({ 
         success: false, 
         error: 'AI排版服务暂时不可用',
-        message: 'ChatAI API调用失败，请稍后重试',
+        message: 'Gemini API调用失败，请稍后重试',
         details: apiError instanceof Error ? apiError.message : String(apiError)
       }, { status: 500 })
     }

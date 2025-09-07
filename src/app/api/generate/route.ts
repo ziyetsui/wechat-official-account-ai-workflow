@@ -201,55 +201,14 @@ export async function POST(request: NextRequest) {
 
     } catch (apiError) {
       console.error('ChatAI API调用失败，错误详情:', apiError)
-      
-      // 提供备用内容
-      let fallbackContent = ''
-      if (type === 'content') {
-        fallbackContent = `关于"${topic}"的文章
 
-这是一篇关于${topic}的文章。由于AI服务暂时不可用，我们为您提供了一个基础框架。
-
-引言：
-${topic}是一个重要的话题，值得我们深入探讨。
-
-主体：
-1. ${topic}的基本概念
-2. ${topic}的重要性
-3. ${topic}的应用场景
-
-结论：
-通过本文的讨论，我们可以看到${topic}的重要性和价值。希望这篇文章能为您提供一些有用的信息。
-
-感谢您的阅读！`
-      } else if (type === 'title') {
-        fallbackContent = `关于${topic}的精彩文章
-${topic}：你不知道的秘密
-深度解析${topic}
-${topic}的完整指南
-${topic}：从入门到精通`
-      } else if (type === 'outline') {
-        fallbackContent = `关于"${topic}"的文章大纲
-
-一、引言
-- 话题引入
-- 问题提出
-
-二、主体
-1. ${topic}的基本概念
-2. ${topic}的重要性分析
-3. ${topic}的实际应用
-
-三、结论
-- 总结要点
-- 展望未来`
-      }
-
+      // 不使用备用内容，直接返回错误
       return NextResponse.json({ 
-        success: true, 
-        data: fallbackContent,
-        type: type,
-        warning: '使用了备用内容，建议稍后重试'
-      })
+        success: false, 
+        error: 'AI内容生成服务暂时不可用',
+        message: 'ChatAI API调用失败，请稍后重试',
+        details: apiError instanceof Error ? apiError.message : String(apiError)
+      }, { status: 500 })
     }
 
   } catch (error) {

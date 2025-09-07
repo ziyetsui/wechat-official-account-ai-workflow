@@ -307,20 +307,13 @@ ${article}
     } catch (apiError) {
       console.error('ChatAI API调用失败，错误详情:', apiError)
       
-      // 备用方案：将文章内容直接插入到自定义模板中
-      const articleHtml = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
-  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-    <div style="white-space: pre-wrap; font-size: 16px; line-height: 1.8;">${article}</div>
-  </div>
-</div>`
-      
-      const finalContent = CUSTOM_FORMATTING_TEMPLATE.replace('<!-- ARTICLE_CONTENT_PLACEHOLDER -->', articleHtml)
-      
+      // 不使用备用方案，直接返回错误
       return NextResponse.json({ 
-        success: true, 
-        data: finalContent,
-        warning: '使用了备用排版方案，建议手动优化格式'
-      })
+        success: false, 
+        error: 'AI排版服务暂时不可用',
+        message: 'ChatAI API调用失败，请稍后重试',
+        details: apiError instanceof Error ? apiError.message : String(apiError)
+      }, { status: 500 })
     }
 
   } catch (error) {

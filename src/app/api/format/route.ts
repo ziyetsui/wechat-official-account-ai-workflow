@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { FORMATTING_PROMPT_TEMPLATE } from '@/lib/format-prompts'
 
-// 使用Gemini API进行排版（与generate API保持一致）
+// 使用Gemini API进行排版
 async function callGeminiForFormat(prompt: string, maxTokens: number = 8000) {
-  const apiKey = process.env.GEMINI_API_KEY
-  const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com'
-  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro-preview-05-06'
+  const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAjVdNMbHndiBgWv-dvDPIcsJ2OQFDu6ug"
+  const baseUrl = process.env.GEMINI_BASE_URL || 'https://api.246520.xyz'
+  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'
   
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY 环境变量未配置')
-  }
-
   console.log('Format API Gemini配置:', {
     baseUrl,
     modelName,

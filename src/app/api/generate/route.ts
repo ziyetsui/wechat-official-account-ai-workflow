@@ -22,9 +22,9 @@ function checkEnvironmentVariables() {
 
 // 安全的API调用函数
 async function safeApiCall(prompt: string, maxTokens: number = 2000) {
-  const apiKey = process.env.GEMINI_API_KEY!
-  const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com'
-  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro-preview-05-06'
+  const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAjVdNMbHndiBgWv-dvDPIcsJ2OQFDu6ug"
+  const baseUrl = process.env.GEMINI_BASE_URL || 'https://api.246520.xyz'
+  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'
   
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒超时
@@ -99,8 +99,8 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
 
 // 直接调用Gemini API的函数
 async function callGemini(prompt: string, maxTokens: number = 2000) {
-  const baseUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com'
-  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro-preview-05-06'
+  const baseUrl = process.env.GEMINI_BASE_URL || 'https://api.246520.xyz'
+  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'
 
   console.log('Gemini配置:', {
     baseUrl,

@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
 
   try {
     // 获取请求体内容
-    const { message, model = 'gpt-3.5-turbo', max_tokens = 1000 } = await request.json()
+    const { message, model = 'gpt-3.5-turbo', max_tokens = 200 } = await request.json()
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
@@ -20,9 +20,9 @@ export async function POST(request: NextRequest) {
       max_tokens 
     })
 
-    // 设置超时控制，最多 15 秒
+    // 设置超时控制，最多 10 秒
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000) // 15 秒
+    const timeout = setTimeout(() => controller.abort(), 10000) // 10 秒
 
     try {
       // 发起 API 请求到ChatAI API服务

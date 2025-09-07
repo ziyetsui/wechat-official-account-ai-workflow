@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server'
 
 // 环境变量检查函数

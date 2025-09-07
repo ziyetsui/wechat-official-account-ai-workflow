@@ -27,7 +27,7 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
   const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'
   
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒超时
+  const timeoutId = setTimeout(() => controller.abort(), 15000) // 15秒超时
   
   try {
     const response = await fetch(`${baseUrl}/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {

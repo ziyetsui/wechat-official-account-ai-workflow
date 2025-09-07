@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 // 使用ChatAI API的调用函数
 async function safeApiCall(prompt: string, maxTokens: number = 2000) {
-  const apiKey = "sk-2dFvkITb1mr3yG7FdIYkc62mZPZKMSIsvdU0dLKaiyduuO3B"
-  const baseUrl = "https://www.chataiapi.com/v1"
-  const modelName = "gpt-3.5-turbo"
+  const apiKey = process.env.CHATA_API_KEY || "sk-2dFvkITb1mr3yG7FdIYkc62mZPZKMSIsvdU0dLKaiyduuO3B"
+  const baseUrl = process.env.CHATA_BASE_URL || "https://www.chataiapi.com/v1"
+  const modelName = process.env.CHATA_MODEL_NAME || "gpt-3.5-turbo"
   
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 15000) // 15秒超时

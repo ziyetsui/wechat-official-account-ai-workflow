@@ -17,23 +17,27 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
       promptLength: prompt.length
     })
     
+    const requestBody = {
+      model: modelName,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.7
+    }
+    
+    console.log('请求体:', JSON.stringify(requestBody, null, 2))
+    
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: maxTokens,
-        temperature: 0.7
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal
     })
     
@@ -44,7 +48,9 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
       console.log('ChatAI API响应成功:', {
         status: response.status,
         model: data.model,
-        usage: data.usage
+        usage: data.usage,
+        hasChoices: !!data.choices,
+        choiceCount: data.choices?.length || 0
       })
       
       return {
@@ -109,12 +115,16 @@ async function callChatAI(prompt: string, maxTokens: number = 2000) {
   // 检查响应结构
   const choice = result.data.choices?.[0]
   if (choice?.message?.content) {
-    return choice.message.content
+    const content = choice.message.content
+    console.log('API返回内容长度:', content.length)
+    console.log('API返回内容预览:', content.substring(0, 200))
+    return content
   } else if (choice?.finish_reason === 'length') {
-    return '生成内容被截断（达到最大token限制），请尝试减少输入长度或增加max_tokens'
+    console.warn('API响应被截断，finish_reason:', choice.finish_reason)
+    throw new Error('生成内容被截断（达到最大token限制），请尝试减少输入长度或增加max_tokens')
   } else {
-    console.error('API响应结构异常:', result.data)
-    return '生成失败：API响应格式异常'
+    console.error('API响应结构异常:', JSON.stringify(result.data, null, 2))
+    throw new Error('生成失败：API响应格式异常')
   }
 }
 
@@ -167,6 +177,8 @@ export async function POST(request: NextRequest) {
     let result: string
 
     try {
+      console.log('开始调用ChatAI API生成内容...')
+      
       if (type === 'content') {
         result = await generateContent(topic, settings)
       } else if (type === 'title') {
@@ -180,6 +192,7 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
       }
 
+      console.log('ChatAI API生成成功，返回内容长度:', result.length)
       return NextResponse.json({ 
         success: true, 
         data: result,
@@ -187,7 +200,7 @@ export async function POST(request: NextRequest) {
       })
 
     } catch (apiError) {
-      console.error('ChatAI API调用失败:', apiError)
+      console.error('ChatAI API调用失败，错误详情:', apiError)
       
       // 提供备用内容
       let fallbackContent = ''

@@ -107,8 +107,22 @@ export async function POST(request: NextRequest) {
 
     // 使用Gemini API进行排版
     try {
-      const prompt = FORMATTING_PROMPT_TEMPLATE.replace('{{article}}', article)
-      const formattedContent = await callGeminiForFormat(prompt, 16000)
+      // 使用简化的prompt模板
+      const simplePrompt = `请将以下文章转换为公众号排版格式的HTML代码：
+
+要求：
+1. 使用HTML格式输出
+2. 添加适当的标题样式（h1, h2等）
+3. 设置合适的字体、颜色和间距
+4. 保持原文内容不变
+5. 使用内联CSS样式
+
+文章内容：
+${article}
+
+请直接输出HTML代码，不要包含任何解释文字。`
+      
+      const formattedContent = await callGeminiForFormat(simplePrompt, 8000)
       
       return NextResponse.json({ 
         success: true, 

@@ -1,61 +1,38 @@
-
 import { NextRequest, NextResponse } from 'next/server'
 
-// 环境变量检查函数
-function checkEnvironmentVariables() {
-  const requiredVars = [
-    'GEMINI_API_KEY',
-    'GEMINI_BASE_URL'
-  ]
-  
-  const missingVars = requiredVars.filter(varName => !process.env[varName])
-  
-  return {
-    allConfigured: missingVars.length === 0,
-    missing: missingVars,
-    configured: requiredVars.reduce((acc, varName) => {
-      acc[varName] = process.env[varName] ? '已配置' : '未配置'
-      return acc
-    }, {} as Record<string, string>)
-  }
-}
-
-// 安全的API调用函数
+// 使用ChatAI API的调用函数
 async function safeApiCall(prompt: string, maxTokens: number = 2000) {
-  const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAjVdNMbHndiBgWv-dvDPIcsJ2OQFDu6ug"
-  const baseUrl = process.env.GEMINI_BASE_URL || 'https://api.246520.xyz'
-  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'
+  const apiKey = "sk-2dFvkITb1mr3yG7FdIYkc62mZPZKMSIsvdU0dLKaiyduuO3B"
+  const baseUrl = "https://www.chataiapi.com/v1"
+  const modelName = "gpt-3.5-turbo"
   
   const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), 10000) // 10秒超时
+  const timeoutId = setTimeout(() => controller.abort(), 15000) // 15秒超时
   
   try {
-    console.log('发起API请求:', {
+    console.log('发起ChatAI API请求:', {
       baseUrl,
       modelName,
       maxTokens,
       promptLength: prompt.length
     })
     
-    const response = await fetch(`${baseUrl}/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        contents: [
+        model: modelName,
+        messages: [
           {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
+            role: 'user',
+            content: prompt
           }
         ],
-        generationConfig: {
-          maxOutputTokens: maxTokens,
-          temperature: 0.7,
-        }
+        max_tokens: maxTokens,
+        temperature: 0.7
       }),
       signal: controller.signal
     })
@@ -64,10 +41,10 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
     
     if (response.ok) {
       const data = await response.json()
-      console.log('API响应成功:', {
+      console.log('ChatAI API响应成功:', {
         status: response.status,
-        hasCandidates: !!data.candidates,
-        candidateCount: data.candidates?.length || 0
+        model: data.model,
+        usage: data.usage
       })
       
       return {
@@ -77,6 +54,12 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
       }
     } else {
       const errorText = await response.text()
+      console.error('ChatAI API响应失败:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText
+      })
+      
       return {
         success: false,
         error: `${response.status} ${response.statusText}`,
@@ -89,13 +72,14 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
     
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        console.error('API请求超时')
+        console.error('ChatAI API请求超时')
         return {
           success: false,
           error: '请求超时',
-          details: 'API调用超过10秒未响应，请稍后重试'
+          details: 'API调用超过15秒未响应，请稍后重试'
         }
       }
+      console.error('ChatAI API请求异常:', error.message)
       return {
         success: false,
         error: error.message,
@@ -103,6 +87,7 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
       }
     }
     
+    console.error('未知错误:', error)
     return {
       success: false,
       error: '未知错误',
@@ -111,31 +96,21 @@ async function safeApiCall(prompt: string, maxTokens: number = 2000) {
   }
 }
 
-// 直接调用Gemini API的函数
-async function callGemini(prompt: string, maxTokens: number = 2000) {
-  const baseUrl = process.env.GEMINI_BASE_URL || 'https://api.246520.xyz'
-  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'
-
-  console.log('Gemini配置:', {
-    baseUrl,
-    modelName,
-    hasApiKey: !!process.env.GEMINI_API_KEY
-  })
-
+// 调用ChatAI API
+async function callChatAI(prompt: string, maxTokens: number = 2000) {
   const result = await safeApiCall(prompt, maxTokens)
   
   if (!result.success) {
-    console.error('Gemini API错误:', result)
-    throw new Error(`Gemini API调用失败: ${result.error} - ${result.details}`)
+    throw new Error(`ChatAI API调用失败: ${result.error} - ${result.details}`)
   }
 
-  console.log('Gemini响应:', { success: true, model: modelName })
+  console.log('ChatAI响应:', { success: true, model: result.data.model })
   
   // 检查响应结构
-  const candidate = result.data.candidates?.[0]
-  if (candidate?.content?.parts?.[0]?.text) {
-    return candidate.content.parts[0].text
-  } else if (candidate?.finishReason === 'MAX_TOKENS') {
+  const choice = result.data.choices?.[0]
+  if (choice?.message?.content) {
+    return choice.message.content
+  } else if (choice?.finish_reason === 'length') {
     return '生成内容被截断（达到最大token限制），请尝试减少输入长度或增加max_tokens'
   } else {
     console.error('API响应结构异常:', result.data)
@@ -152,145 +127,124 @@ async function generateContent(topic: string, settings?: any): Promise<string> {
 
 请直接输出文章内容，不需要任何说明或标题。`
 
-  return await callGemini(prompt, 2000)
+  return await callChatAI(prompt, 2000)
 }
 
 async function generateTitle(topic: string): Promise<string> {
   const prompt = `请为关于"${topic}"的微信公众号文章生成5个吸引人的标题，要求：
 1. 标题要有吸引力，能引起读者兴趣
 2. 长度适中，适合微信公众号显示
-3. 包含关键词，有利于SEO
-4. 风格多样，有疑问式、数字式、情感式等
-5. 符合刘润老师的文风特点
 
-请直接输出5个标题，每行一个，不需要编号。`
+请直接输出标题，每行一个。`
 
-  return await callGemini(prompt, 1000)
+  return await callChatAI(prompt, 300)
 }
 
-async function generateImageSuggestions(content: string): Promise<string> {
-  const prompt = `为以下微信公众号文章内容推荐3-5张配图建议：
+async function generateOutline(topic: string): Promise<string> {
+  const prompt = `请为关于"${topic}"的微信公众号文章生成一个详细的大纲，要求：
+1. 包含引言、主体、结论
+2. 主体部分至少3个要点
+3. 每个要点有简要说明
 
-${content.substring(0, 500)}...
+请直接输出大纲内容。`
 
-请提供具体的配图建议，包括：
-1. 图片类型（如：插图、照片、图表等）
-2. 图片内容描述
-3. 图片风格建议
-4. 放置位置建议
-
-请用简洁的语言描述，每张图片建议用一行表示。`
-
-  return await callGemini(prompt, 800)
-}
-
-export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  })
+  return await callChatAI(prompt, 800)
 }
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== 内容生成API开始 ===')
-    
-    // 设置CORS头
-    const headers = {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    const { topic, type = 'content', settings } = await request.json()
+
+    if (!topic) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Topic is required' 
+      }, { status: 400 })
     }
 
-    const { topic, type, settings } = await request.json()
-    console.log('接收到的参数:', { topic, type, settings })
-
-    if (!topic || !type) {
-      console.error('缺少必要参数:', { topic, type })
-      return NextResponse.json(
-        { 
-          success: false,
-          error: '缺少必要参数',
-          message: '请提供topic和type参数'
-        },
-        { status: 400, headers }
-      )
-    }
-
-    // 检查环境变量
-    const envCheck = checkEnvironmentVariables()
-    if (!envCheck.allConfigured) {
-      console.error('环境变量配置不完整:', envCheck.missing)
-      return NextResponse.json(
-        { 
-          success: false,
-          error: '环境变量配置不完整',
-          missing: envCheck.missing,
-          configured: envCheck.configured
-        },
-        { status: 500, headers }
-      )
-    }
+    console.log('收到生成请求:', { topic, type })
 
     let result: string
 
-    switch (type) {
-      case 'content':
-        console.log('开始生成文章内容...')
+    try {
+      if (type === 'content') {
         result = await generateContent(topic, settings)
-        break
-      case 'title':
-        console.log('开始生成标题...')
+      } else if (type === 'title') {
         result = await generateTitle(topic)
-        break
-      case 'images':
-        console.log('开始生成配图建议...')
-        result = await generateImageSuggestions(topic)
-        break
-      default:
-        console.error('不支持的类型:', type)
-        return NextResponse.json(
-          { 
-            success: false,
-            error: '不支持的类型',
-            message: 'type参数必须是content、title或images之一'
-          },
-          { status: 400, headers }
-        )
+      } else if (type === 'outline') {
+        result = await generateOutline(topic)
+      } else {
+        return NextResponse.json({ 
+          success: false, 
+          error: 'Invalid type. Must be content, title, or outline' 
+        }, { status: 400 })
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        data: result,
+        type: type
+      })
+
+    } catch (apiError) {
+      console.error('ChatAI API调用失败:', apiError)
+      
+      // 提供备用内容
+      let fallbackContent = ''
+      if (type === 'content') {
+        fallbackContent = `关于"${topic}"的文章
+
+这是一篇关于${topic}的文章。由于AI服务暂时不可用，我们为您提供了一个基础框架。
+
+引言：
+${topic}是一个重要的话题，值得我们深入探讨。
+
+主体：
+1. ${topic}的基本概念
+2. ${topic}的重要性
+3. ${topic}的应用场景
+
+结论：
+通过本文的讨论，我们可以看到${topic}的重要性和价值。希望这篇文章能为您提供一些有用的信息。
+
+感谢您的阅读！`
+      } else if (type === 'title') {
+        fallbackContent = `关于${topic}的精彩文章
+${topic}：你不知道的秘密
+深度解析${topic}
+${topic}的完整指南
+${topic}：从入门到精通`
+      } else if (type === 'outline') {
+        fallbackContent = `关于"${topic}"的文章大纲
+
+一、引言
+- 话题引入
+- 问题提出
+
+二、主体
+1. ${topic}的基本概念
+2. ${topic}的重要性分析
+3. ${topic}的实际应用
+
+三、结论
+- 总结要点
+- 展望未来`
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        data: fallbackContent,
+        type: type,
+        warning: '使用了备用内容，建议稍后重试'
+      })
     }
 
-    console.log('=== 内容生成API完成 ===')
-    return NextResponse.json({ 
-      success: true, 
-      data: result,
-      type 
-    }, { headers })
-
   } catch (error) {
-    console.error('=== 内容生成API异常 ===')
-    console.error('错误详情:', error)
-    
-    return NextResponse.json(
-      { 
-        success: false,
-        error: error instanceof Error ? error.message : '服务器内部错误',
-        message: '服务器处理请求时发生错误',
-        stack: error instanceof Error ? error.stack : undefined
-      },
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        }
-      }
-    )
+    console.error('请求处理异常:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Bad Request',
+      message: '请求格式错误'
+    }, { status: 400 })
   }
-} 
+}

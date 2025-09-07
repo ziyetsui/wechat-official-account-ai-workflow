@@ -8,39 +8,40 @@ export async function POST(request: NextRequest) {
 
   try {
     // 获取请求体内容
-    const { message } = await request.json()
+    const { message, model = 'gpt-3.5-turbo', max_tokens = 1000 } = await request.json()
 
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
-    console.log('收到聊天请求:', { messageLength: message.length })
+    console.log('收到聊天请求:', { 
+      messageLength: message.length, 
+      model, 
+      max_tokens 
+    })
 
-    // 设置超时控制，最多 10 秒
+    // 设置超时控制，最多 15 秒
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 10000) // 10 秒
+    const timeout = setTimeout(() => controller.abort(), 15000) // 15 秒
 
     try {
-      // 发起 API 请求
-      const response = await fetch('https://api.246520.xyz/v1beta/models/gemini-2.5-pro:generateContent?key=AIzaSyAjVdNMbHndiBgWv-dvDPIcsJ2OQFDu6ug', {
+      // 发起 API 请求到ChatAI API服务
+      const response = await fetch('https://www.chataiapi.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer sk-2dFvkITb1mr3yG7FdIYkc62mZPZKMSIsvdU0dLKaiyduuO3B'
         },
         body: JSON.stringify({
-          contents: [
+          model: model,
+          messages: [
             {
-              parts: [
-                {
-                  text: message
-                }
-              ]
+              role: 'user',
+              content: message
             }
           ],
-          generationConfig: {
-            maxOutputTokens: 200,
-            temperature: 0.7,
-          }
+          max_tokens: max_tokens,
+          temperature: 0.7
         }),
         signal: controller.signal, // 传入超时控制信号
       })
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       // 检查 API 响应
       if (!response.ok) {
         const errorText = await response.text()
-        console.error('API请求失败:', {
+        console.error('ChatAI API请求失败:', {
           status: response.status,
           statusText: response.statusText,
           errorText
@@ -57,34 +58,35 @@ export async function POST(request: NextRequest) {
       }
 
       const data = await response.json()
-      console.log('API响应成功:', {
+      console.log('ChatAI API响应成功:', {
         status: response.status,
-        hasCandidates: !!data.candidates,
-        candidateCount: data.candidates?.length || 0
+        model: data.model,
+        usage: data.usage
       })
       
       // 处理响应数据
-      const candidate = data.candidates?.[0]
+      const choice = data.choices?.[0]
       let content = '抱歉，我无法生成回复。'
       
-      if (candidate?.content?.parts?.[0]?.text) {
-        content = candidate.content.parts[0].text
-      } else if (candidate?.finishReason === 'MAX_TOKENS') {
+      if (choice?.message?.content) {
+        content = choice.message.content
+      } else if (choice?.finish_reason === 'length') {
         content = '回复被截断（达到最大token限制），请尝试更简短的问题。'
-      } else if (candidate?.finishReason) {
-        content = `回复完成，原因：${candidate.finishReason}`
+      } else if (choice?.finish_reason) {
+        content = `回复完成，原因：${choice.finish_reason}`
       }
       
       // 返回 API 数据
       return NextResponse.json({
         success: true,
         message: content,
-        usage: data.usageMetadata,
-        model: data.modelVersion
+        usage: data.usage,
+        model: data.model,
+        id: data.id
       })
       
     } catch (error) {
-      console.error('Error during API request:', error)
+      console.error('Error during ChatAI API request:', error)
 
       // 处理超时错误
       if (error instanceof Error && error.name === 'AbortError') {

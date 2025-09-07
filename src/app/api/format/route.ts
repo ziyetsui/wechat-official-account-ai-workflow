@@ -1,42 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { FORMATTING_PROMPT_TEMPLATE } from '@/lib/format-prompts'
 
-// 使用Gemini API进行排版
-async function callGeminiForFormat(prompt: string, maxTokens: number = 8000) {
-  const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAjVdNMbHndiBgWv-dvDPIcsJ2OQFDu6ug"
-  const baseUrl = process.env.GEMINI_BASE_URL || 'https://api.246520.xyz'
-  const modelName = process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'
+// 使用ChatAI API的排版函数
+async function callChatAIForFormat(prompt: string, maxTokens: number = 2000) {
+  const apiKey = "sk-2dFvkITb1mr3yG7FdIYkc62mZPZKMSIsvdU0dLKaiyduuO3B"
+  const baseUrl = "https://www.chataiapi.com/v1"
+  const modelName = "gpt-3.5-turbo"
   
-  console.log('Format API Gemini配置:', {
-    baseUrl,
-    modelName,
-    hasApiKey: !!apiKey,
-    maxTokens
-  })
-
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 15000) // 15秒超时
   
   try {
-    const response = await fetch(`${baseUrl}/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+    console.log('发起ChatAI API排版请求:', {
+      baseUrl,
+      modelName,
+      maxTokens,
+      promptLength: prompt.length
+    })
+    
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        contents: [
+        model: modelName,
+        messages: [
           {
-            parts: [
-              {
-                text: prompt
-              }
-            ]
+            role: 'user',
+            content: prompt
           }
         ],
-        generationConfig: {
-          maxOutputTokens: maxTokens,
-          temperature: 0.3,
-        }
+        max_tokens: maxTokens,
+        temperature: 0.3
       }),
       signal: controller.signal
     })
@@ -45,59 +41,66 @@ async function callGeminiForFormat(prompt: string, maxTokens: number = 8000) {
     
     if (response.ok) {
       const data = await response.json()
+      console.log('ChatAI API排版响应成功:', {
+        status: response.status,
+        model: data.model,
+        usage: data.usage
+      })
       
       // 检查响应结构
-      const candidate = data.candidates?.[0]
+      const choice = data.choices?.[0]
       let content = '排版失败'
       
-      if (candidate?.content?.parts?.[0]?.text) {
-        content = candidate.content.parts[0].text
-      } else if (candidate?.finishReason === 'MAX_TOKENS') {
+      if (choice?.message?.content) {
+        content = choice.message.content
+        
+        // 检查是否包含HTML标签
+        if (!content.includes('<') || !content.includes('>')) {
+          console.warn('API返回内容不包含HTML标签')
+          throw new Error('API返回内容格式不正确')
+        }
+      } else if (choice?.finish_reason === 'length') {
         content = '排版内容被截断（达到最大token限制），请尝试减少输入长度'
+      } else if (choice?.finish_reason) {
+        content = `排版完成，原因：${choice.finish_reason}`
       } else {
         console.error('API响应结构异常:', data)
         content = '排版失败：API响应格式异常'
       }
       
-      console.log('Gemini Format API 响应成功，内容长度:', content.length)
-      
       // 检查HTML完整性
-      const hasOpeningDiv = content.includes('<div')
-      const hasClosingDiv = content.includes('</div>')
-      const hasOpeningP = content.includes('<p')
-      const hasClosingP = content.includes('</p>')
-      
-      console.log('HTML完整性检查:')
-      console.log('- 包含开始div标签:', hasOpeningDiv)
-      console.log('- 包含结束div标签:', hasClosingDiv)
-      console.log('- 包含开始p标签:', hasOpeningP)
-      console.log('- 包含结束p标签:', hasClosingP)
-      
-      // 如果HTML不完整，尝试修复
-      if (hasOpeningDiv && !hasClosingDiv) {
-        console.warn('检测到不完整的HTML，尝试修复...')
-        const fixedContent = content + '\n</div>'
-        console.log('已添加结束div标签')
-        return fixedContent
+      if (content.includes('<') && content.includes('>')) {
+        // 确保有基本的HTML结构
+        if (!content.includes('<div') && !content.includes('<p') && !content.includes('<h')) {
+          console.warn('HTML结构不完整，添加基础结构')
+          content = `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">${content}</div>`
+        }
       }
       
       return content
     } else {
       const errorText = await response.text()
-      throw new Error(`Gemini API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
+      console.error('ChatAI API排版响应失败:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorText
+      })
+      throw new Error(`ChatAI API调用失败: ${response.status} ${response.statusText} - ${errorText}`)
     }
-    
   } catch (error) {
     clearTimeout(timeoutId)
     
     if (error instanceof Error) {
       if (error.name === 'AbortError') {
-        throw new Error('API调用超时，请稍后重试')
+        console.error('ChatAI API排版请求超时')
+        throw new Error('请求超时 - API调用超过15秒未响应，请稍后重试')
       }
+      console.error('ChatAI API排版请求异常:', error.message)
       throw error
     }
     
-    throw new Error('API调用失败: ' + String(error))
+    console.error('未知错误:', error)
+    throw new Error('未知错误: ' + String(error))
   }
 }
 
@@ -105,35 +108,46 @@ export async function POST(request: NextRequest) {
   try {
     const { article } = await request.json()
 
-    if (!article) {
-      return NextResponse.json(
-        { error: '缺少文章内容' },
-        { status: 400 }
-      )
+    if (!article || typeof article !== 'string') {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Article content is required' 
+      }, { status: 400 })
     }
 
-    console.log('Format API 调用开始，文章长度:', article.length)
+    if (article.trim().length === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Article content cannot be empty' 
+      }, { status: 400 })
+    }
 
-    // 使用Gemini API进行排版
+    console.log('收到排版请求:', { articleLength: article.length })
+
     try {
-      // 使用极简的prompt模板
-      const simplePrompt = `请将以下文章转换为HTML格式：
+      const prompt = `请将以下文章转换为HTML格式，要求：
+1. 使用HTML格式，添加适当的样式
+2. 保持原文内容不变
+3. 添加合适的标题、段落、强调等HTML标签
+4. 使用内联样式，确保在微信公众号中正常显示
+5. 添加适当的颜色和字体样式
 
-文章：${article}
+文章内容：
+${article}
 
-要求：使用HTML格式，添加适当的样式，保持原文内容。直接输出HTML代码。`
-      
-      const formattedContent = await callGeminiForFormat(simplePrompt, 4000)
+请直接输出HTML代码，不要包含任何说明文字。`
+
+      const formattedContent = await callChatAIForFormat(prompt, 2000)
       
       return NextResponse.json({ 
         success: true, 
         data: formattedContent
       })
     } catch (apiError) {
-      console.warn('Gemini API调用失败，使用备用方案:', apiError)
+      console.warn('ChatAI API调用失败，使用备用方案:', apiError)
       
-      // 备用方案：返回基本的HTML格式化
-      const basicFormattedContent = `
+      // 备用方案：返回基础HTML格式
+      const fallbackContent = `
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
   <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
     <h2 style="color: #2c3e50; margin: 0 0 15px 0; font-size: 24px;">📝 文章内容</h2>
@@ -146,23 +160,20 @@ export async function POST(request: NextRequest) {
     </p>
   </div>
 </div>`
-      
+
       return NextResponse.json({ 
         success: true, 
-        data: basicFormattedContent,
+        data: fallbackContent,
         warning: '使用了备用排版方案，建议手动优化格式'
       })
     }
 
   } catch (error) {
-    console.error('排版API错误:', error)
-    return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : '排版失败，请稍后重试',
-        success: false 
-      },
-      { status: 500 }
-    )
+    console.error('请求处理异常:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Bad Request',
+      message: '请求格式错误'
+    }, { status: 400 })
   }
 }
-

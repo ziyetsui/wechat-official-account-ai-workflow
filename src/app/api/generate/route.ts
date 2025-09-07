@@ -152,7 +152,7 @@ async function generateContent(topic: string, settings?: any): Promise<string> {
 
 请直接输出文章内容，不需要任何说明或标题。`
 
-  return await callGemini(prompt, 1000)
+  return await callGemini(prompt, 2000)
 }
 
 async function generateTitle(topic: string): Promise<string> {

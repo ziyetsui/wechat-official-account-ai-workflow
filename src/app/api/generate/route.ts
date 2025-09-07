@@ -145,16 +145,14 @@ async function callGemini(prompt: string, maxTokens: number = 2000) {
 
 // 简化的生成函数
 async function generateContent(topic: string, settings?: any): Promise<string> {
-  const prompt = `请为关于"${topic}"的微信公众号文章生成一篇3000-4000字的文章，要求：
+  const prompt = `请为关于"${topic}"的微信公众号文章生成一篇500-800字的文章，要求：
 1. 文章要有吸引力，能引起读者兴趣
-2. 符合刘润老师的文风特点
-3. 包含实际案例和深入分析
-4. 结构清晰，逻辑严密
-5. 语言生动，易于理解
+2. 结构清晰，逻辑严密
+3. 语言生动，易于理解
 
 请直接输出文章内容，不需要任何说明或标题。`
 
-  return await callGemini(prompt, 4000)
+  return await callGemini(prompt, 1000)
 }
 
 async function generateTitle(topic: string): Promise<string> {

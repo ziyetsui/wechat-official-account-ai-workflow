@@ -107,15 +107,41 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const prompt = FORMATTING_PROMPT_TEMPLATE.replace('{{article}}', article)
+    console.log('Format API 调用开始，文章长度:', article.length)
 
-    // 增加max_tokens以确保生成完整的HTML内容
-    const formattedContent = await callAzureOpenAI(prompt, 16000)
-
-    return NextResponse.json({ 
-      success: true, 
-      data: formattedContent
-    })
+    // 临时解决方案：如果API调用失败，返回一个基本的格式化结果
+    try {
+      const prompt = FORMATTING_PROMPT_TEMPLATE.replace('{{article}}', article)
+      const formattedContent = await callAzureOpenAI(prompt, 16000)
+      
+      return NextResponse.json({ 
+        success: true, 
+        data: formattedContent
+      })
+    } catch (apiError) {
+      console.warn('API调用失败，使用备用方案:', apiError)
+      
+      // 备用方案：返回基本的HTML格式化
+      const basicFormattedContent = `
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 20px;">
+  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+    <h2 style="color: #2c3e50; margin: 0 0 15px 0; font-size: 24px;">📝 文章内容</h2>
+    <div style="white-space: pre-wrap; font-size: 16px; line-height: 1.8;">${article}</div>
+  </div>
+  
+  <div style="background: #e8f4fd; padding: 15px; border-radius: 6px; border-left: 4px solid #3498db;">
+    <p style="margin: 0; color: #2980b9; font-size: 14px;">
+      <strong>💡 提示：</strong>由于API服务暂时不可用，已为您提供基础排版格式。您可以复制此内容到公众号编辑器中进行进一步美化。
+    </p>
+  </div>
+</div>`
+      
+      return NextResponse.json({ 
+        success: true, 
+        data: basicFormattedContent,
+        warning: '使用了备用排版方案，建议手动优化格式'
+      })
+    }
 
   } catch (error) {
     console.error('排版API错误:', error)

@@ -17,23 +17,27 @@ async function callChatAIForFormat(prompt: string, maxTokens: number = 2000) {
       promptLength: prompt.length
     })
     
+    const requestBody = {
+      model: modelName,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.3
+    }
+    
+    console.log('请求体:', JSON.stringify(requestBody, null, 2))
+    
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        max_tokens: maxTokens,
-        temperature: 0.3
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal
     })
     
@@ -44,7 +48,9 @@ async function callChatAIForFormat(prompt: string, maxTokens: number = 2000) {
       console.log('ChatAI API排版响应成功:', {
         status: response.status,
         model: data.model,
-        usage: data.usage
+        usage: data.usage,
+        hasChoices: !!data.choices,
+        choiceCount: data.choices?.length || 0
       })
       
       // 检查响应结构
@@ -53,19 +59,23 @@ async function callChatAIForFormat(prompt: string, maxTokens: number = 2000) {
       
       if (choice?.message?.content) {
         content = choice.message.content
+        console.log('API返回内容长度:', content.length)
+        console.log('API返回内容预览:', content.substring(0, 200))
         
         // 检查是否包含HTML标签
         if (!content.includes('<') || !content.includes('>')) {
-          console.warn('API返回内容不包含HTML标签')
-          throw new Error('API返回内容格式不正确')
+          console.warn('API返回内容不包含HTML标签，内容:', content)
+          throw new Error('API返回内容格式不正确，不包含HTML标签')
         }
       } else if (choice?.finish_reason === 'length') {
         content = '排版内容被截断（达到最大token限制），请尝试减少输入长度'
+        console.warn('API响应被截断，finish_reason:', choice.finish_reason)
       } else if (choice?.finish_reason) {
         content = `排版完成，原因：${choice.finish_reason}`
+        console.warn('API响应完成，finish_reason:', choice.finish_reason)
       } else {
-        console.error('API响应结构异常:', data)
-        content = '排版失败：API响应格式异常'
+        console.error('API响应结构异常:', JSON.stringify(data, null, 2))
+        throw new Error('API响应格式异常，没有找到有效内容')
       }
       
       // 检查HTML完整性
@@ -137,14 +147,16 @@ ${article}
 
 请直接输出HTML代码，不要包含任何说明文字。`
 
+      console.log('开始调用ChatAI API进行排版...')
       const formattedContent = await callChatAIForFormat(prompt, 2000)
+      console.log('ChatAI API排版成功，返回内容长度:', formattedContent.length)
       
       return NextResponse.json({ 
         success: true, 
         data: formattedContent
       })
     } catch (apiError) {
-      console.warn('ChatAI API调用失败，使用备用方案:', apiError)
+      console.error('ChatAI API调用失败，错误详情:', apiError)
       
       // 备用方案：返回基础HTML格式
       const fallbackContent = `

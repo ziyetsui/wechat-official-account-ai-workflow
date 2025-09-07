@@ -116,7 +116,17 @@ async function callGemini(prompt: string, maxTokens: number = 2000) {
   }
 
   console.log('Gemini响应:', { success: true, model: modelName })
-  return result.data.candidates?.[0]?.content?.parts?.[0]?.text || '生成失败'
+  
+  // 检查响应结构
+  const candidate = result.data.candidates?.[0]
+  if (candidate?.content?.parts?.[0]?.text) {
+    return candidate.content.parts[0].text
+  } else if (candidate?.finishReason === 'MAX_TOKENS') {
+    return '生成内容被截断（达到最大token限制），请尝试减少输入长度或增加max_tokens'
+  } else {
+    console.error('API响应结构异常:', result.data)
+    return '生成失败：API响应格式异常'
+  }
 }
 
 // 简化的生成函数

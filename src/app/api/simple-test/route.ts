@@ -48,7 +48,17 @@ export async function GET(request: NextRequest) {
         const data = await response.json()
         console.log('API 响应数据:', JSON.stringify(data, null, 2))
         
-        const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '无响应内容'
+        // 检查响应结构
+        const candidate = data.candidates?.[0]
+        let content = '无响应内容'
+        
+        if (candidate?.content?.parts?.[0]?.text) {
+          content = candidate.content.parts[0].text
+        } else if (candidate?.finishReason === 'MAX_TOKENS') {
+          content = 'API响应被截断（达到最大token限制）'
+        } else if (candidate?.finishReason) {
+          content = `API响应完成，原因：${candidate.finishReason}`
+        }
         
         console.log('API 调用成功:', { success: true, content })
         

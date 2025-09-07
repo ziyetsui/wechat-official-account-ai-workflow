@@ -45,7 +45,19 @@ async function callGeminiForFormat(prompt: string, maxTokens: number = 8000) {
     
     if (response.ok) {
       const data = await response.json()
-      const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '排版失败'
+      
+      // 检查响应结构
+      const candidate = data.candidates?.[0]
+      let content = '排版失败'
+      
+      if (candidate?.content?.parts?.[0]?.text) {
+        content = candidate.content.parts[0].text
+      } else if (candidate?.finishReason === 'MAX_TOKENS') {
+        content = '排版内容被截断（达到最大token限制），请尝试减少输入长度'
+      } else {
+        console.error('API响应结构异常:', data)
+        content = '排版失败：API响应格式异常'
+      }
       
       console.log('Gemini Format API 响应成功，内容长度:', content.length)
       

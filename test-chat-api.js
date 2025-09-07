@@ -8,7 +8,7 @@ console.log('')
 
 async function testChatAPI() {
   const testData = {
-    message: "你好，请简单介绍一下人工智能的发展历程。"
+    message: "你好"
   };
 
   const postData = JSON.stringify(testData);

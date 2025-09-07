@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             }
           ],
           generationConfig: {
-            maxOutputTokens: 50,
+            maxOutputTokens: 200,
             temperature: 0.3,
           }
         }),
@@ -55,9 +55,11 @@ export async function GET(request: NextRequest) {
         if (candidate?.content?.parts?.[0]?.text) {
           content = candidate.content.parts[0].text
         } else if (candidate?.finishReason === 'MAX_TOKENS') {
-          content = 'API响应被截断（达到最大token限制）'
+          content = 'API响应被截断（达到最大token限制），但API连接正常'
         } else if (candidate?.finishReason) {
           content = `API响应完成，原因：${candidate.finishReason}`
+        } else {
+          content = 'API连接正常，但响应格式异常'
         }
         
         console.log('API 调用成功:', { success: true, content })
